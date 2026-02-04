@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array Loop Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #0a0a1a;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // Global score tracker
+        let globalScore = 0;
+
+        // Room 1 Scene
+        class Room1 extends Phaser.Scene {
+            constructor() {
+                super('Room1');
+            }
+
+            create() {
+                // Dark space background
+                this.cameras.main.setBackgroundColor('#1a1a2e');
+                this.drawStars();
+
+                // Floor (with physics)
+                this.floor = this.add.rectangle(450, 580, 900, 40, 0x2d3561);
+                this.physics.add.existing(this.floor, true);
+
+                // Add floor glow
+                this.add.rectangle(450, 560, 900, 2, 0x06ffa5, 0.5);
+
+                // Instruction text
+                this.add.text(450, 30, 'Room 1: Processing a single item', {
+                    fontSize: '18px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                this.add.text(450, 55, 'Arrow keys to move, Up to jump, push crate into Processor', {
+                    fontSize: '13px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                // Score
+                this.scoreText = this.add.text(20, 60, 'Score: ' + globalScore, {
+                    fontSize: '16px',
+                    fill: '#ffffff'
+                });
+
+                // Restart hint (always visible)
+                this.add.text(880, 20, 'R = Restart', {
+                    fontSize: '14px',
+                    fill: '#ffff00',
+                    fontFamily: 'Courier New'
+                }).setOrigin(1, 0);
+
+                // Create player (small robot with better graphics)
+                this.player = this.physics.add.sprite(100, 500, null);
+                this.playerGraphics = this.add.graphics();
+                // Robot body
+                this.playerGraphics.fillStyle(0x00ff88, 1);
+                this.playerGraphics.fillRoundedRect(-12, -12, 24, 24, 4);
+                // Eyes
+                this.playerGraphics.fillStyle(0x000000, 1);
+                this.playerGraphics.fillCircle(-5, -5, 2);
+                this.playerGraphics.fillCircle(5, -5, 2);
+                // Antenna
+                this.playerGraphics.lineStyle(2, 0x00ff88);
+                this.playerGraphics.lineBetween(0, -12, 0, -18);
+                this.playerGraphics.fillStyle(0x06ffa5, 1);
+                this.playerGraphics.fillCircle(0, -18, 3);
+                this.playerGraphics.generateTexture('robot', 30, 30);
+                this.playerGraphics.destroy();
+                this.player.setTexture('robot');
+                this.player.setCollideWorldBounds(true);
+                this.player.body.setSize(28, 28);
+
+                // Create crate (with better graphics)
+                this.crate = this.physics.add.sprite(300, 500, null);
+                let crateGfx = this.add.graphics();
+                crateGfx.fillStyle(0xf4a261, 1);
+                crateGfx.fillRect(0, 0, 40, 40);
+                crateGfx.lineStyle(3, 0xe76f51);
+                crateGfx.strokeRect(0, 0, 40, 40);
+                // Add details
+                crateGfx.lineStyle(2, 0xe76f51);
+                crateGfx.lineBetween(5, 5, 35, 35);
+                crateGfx.lineBetween(35, 5, 5, 35);
+                crateGfx.generateTexture('crate', 40, 40);
+                crateGfx.destroy();
+                this.crate.setTexture('crate');
+                this.crate.body.setSize(40, 40);
+                this.crate.body.immovable = false;
+                this.crate.body.mass = 5;
+
+                // Create Processor (with better graphics)
+                this.processor = this.add.rectangle(700, 520, 80, 100, 0x457b9d);
+                this.physics.add.existing(this.processor, true);
+                // Add processor details
+                this.add.rectangle(700, 520, 60, 80, 0x1d3557);
+                let greenLight = this.add.circle(700, 510, 8, 0x06ffa5, 0.8);
+                let redLight = this.add.circle(700, 540, 6, 0xff006e, 0.6);
+                // Animate lights
+                this.tweens.add({
+                    targets: greenLight,
+                    alpha: { from: 0.4, to: 1 },
+                    yoyo: true,
+                    repeat: -1,
+                    duration: 800
+                });
+                this.add.text(700, 480, 'Processor', {
+                    fontSize: '14px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Create locked door (with better graphics)
+                this.door = this.add.rectangle(880, 500, 30, 120, 0xff6b6b);
+                this.doorLocked = true;
+                this.add.rectangle(880, 500, 20, 100, 0xd62828);
+                this.doorText = this.add.text(880, 440, 'LOCKED', {
+                    fontSize: '12px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Physics colliders
+                this.physics.add.collider(this.player, this.floor);
+                this.physics.add.collider(this.crate, this.floor);
+                this.physics.add.collider(this.player, this.crate);
+
+                // Track if crate processed
+                this.crateProcessed = false;
+
+                // Keyboard
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+                this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+            }
+
+            drawStars() {
+                // Add background panels for spaceship aesthetic
+                this.add.rectangle(100, 300, 150, 500, 0x16213e, 0.3);
+                this.add.rectangle(800, 350, 180, 400, 0x16213e, 0.3);
+
+                // Stars
+                for (let i = 0; i < 50; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    let size = Phaser.Math.Between(1, 2);
+                    this.add.circle(x, y, size, 0xffffff, 0.6);
+                }
+
+                // Distant stars (smaller)
+                for (let i = 0; i < 30; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    this.add.circle(x, y, 1, 0xa8dadc, 0.4);
+                }
+            }
+
+            update() {
+                // Player movement
+                if (this.cursors.left.isDown) {
+                    this.player.setVelocityX(-160);
+                } else if (this.cursors.right.isDown) {
+                    this.player.setVelocityX(160);
+                } else {
+                    this.player.setVelocityX(0);
+                }
+
+                // Simple jump
+                if (this.cursors.up.isDown && this.player.body.touching.down) {
+                    this.player.setVelocityY(-300);
+                }
+
+                // Push crate
+                if (!this.crateProcessed && this.crate) {
+                    let cratePlayerDist = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        this.crate.x, this.crate.y
+                    );
+
+                    if (cratePlayerDist < 40) {
+                        let angle = Phaser.Math.Angle.Between(
+                            this.player.x, this.player.y,
+                            this.crate.x, this.crate.y
+                        );
+                        this.crate.setVelocityX(Math.cos(angle) * 50);
+                    } else {
+                        this.crate.setVelocityX(this.crate.body.velocity.x * 0.95);
+                    }
+
+                    // Check if crate touches processor
+                    let crateProcDist = Phaser.Math.Distance.Between(
+                        this.crate.x, this.crate.y,
+                        this.processor.x, this.processor.y
+                    );
+
+                    if (crateProcDist < 70 && !this.crateProcessed) {
+                        this.processCrate();
+                    }
+                }
+
+                // Apply gravity
+                if (this.crate && !this.crateProcessed) {
+                    this.crate.setAccelerationY(600);
+                }
+                this.player.setAccelerationY(600);
+
+                // Check door transition
+                if (!this.doorLocked && this.player.x > 850) {
+                    this.scene.start('Room2');
+                }
+
+                // Restart
+                if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
+                    this.scene.restart();
+                }
+
+                // Update score display
+                this.scoreText.setText('Score: ' + globalScore);
+            }
+
+            processCrate() {
+                this.crateProcessed = true;
+                globalScore += 100;
+
+                // Success animation
+                this.tweens.add({
+                    targets: this.crate,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 500,
+                    onComplete: () => {
+                        if (this.crate) this.crate.destroy();
+                    }
+                });
+
+                let successText = this.add.text(700, 400, 'SUCCESS! +100', {
+                    fontSize: '20px',
+                    fill: '#00ff88'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: successText,
+                    alpha: 0,
+                    y: 350,
+                    duration: 1000,
+                    onComplete: () => successText.destroy()
+                });
+
+                // Unlock door
+                this.time.delayedCall(600, () => {
+                    this.unlockDoor();
+                });
+            }
+
+            unlockDoor() {
+                this.doorLocked = false;
+                this.door.setFillStyle(0x00ff88);
+                this.doorText.setText('OPEN');
+                this.doorText.setColor('#00ff88');
+
+                // Add unlock animation
+                this.tweens.add({
+                    targets: this.door,
+                    alpha: { from: 0.5, to: 1 },
+                    yoyo: true,
+                    repeat: 3,
+                    duration: 200
+                });
+            }
+        }
+
+        // Room 2 Scene
+        class Room2 extends Phaser.Scene {
+            constructor() {
+                super('Room2');
+            }
+
+            create() {
+                this.cameras.main.setBackgroundColor('#1a1a2e');
+                this.drawStars();
+
+                // Floor with physics
+                this.floor = this.add.rectangle(450, 580, 900, 40, 0x2d3561);
+                this.physics.add.existing(this.floor, true);
+                this.add.rectangle(450, 560, 900, 2, 0x06ffa5, 0.5);
+
+                this.add.text(450, 30, 'Room 2: Arrays hold multiple items!', {
+                    fontSize: '18px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                this.helpText = this.add.text(450, 55, 'Open the container [array] to access items inside', {
+                    fontSize: '14px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(20, 60, 'Score: ' + globalScore, {
+                    fontSize: '16px',
+                    fill: '#ffffff'
+                });
+
+                // Restart hint (always visible)
+                this.add.text(880, 20, 'R = Restart', {
+                    fontSize: '14px',
+                    fill: '#ffff00',
+                    fontFamily: 'Courier New'
+                }).setOrigin(1, 0);
+
+                // Player
+                this.player = this.physics.add.sprite(100, 500, 'robot');
+                this.player.setCollideWorldBounds(true);
+                this.player.body.setSize(28, 28);
+
+                // Large container (with better graphics)
+                this.containerOpen = false;
+                this.container = this.physics.add.sprite(300, 500, null);
+                let containerGfx = this.add.graphics();
+                containerGfx.fillStyle(0x8338ec, 1);
+                containerGfx.fillRect(0, 0, 80, 80);
+                containerGfx.lineStyle(4, 0xff006e);
+                containerGfx.strokeRect(0, 0, 80, 80);
+                // Add array brackets visual (using lines)
+                containerGfx.lineStyle(4, 0xffffff);
+                containerGfx.lineBetween(15, 20, 15, 60);
+                containerGfx.lineBetween(15, 20, 20, 20);
+                containerGfx.lineBetween(15, 60, 20, 60);
+                containerGfx.lineBetween(65, 20, 65, 60);
+                containerGfx.lineBetween(65, 20, 60, 20);
+                containerGfx.lineBetween(65, 60, 60, 60);
+                // Add dots for items
+                containerGfx.fillStyle(0xffffff, 0.6);
+                containerGfx.fillCircle(30, 40, 3);
+                containerGfx.fillCircle(40, 40, 3);
+                containerGfx.fillCircle(50, 40, 3);
+                containerGfx.generateTexture('container', 80, 80);
+                containerGfx.destroy();
+                this.container.setTexture('container');
+                this.container.body.setSize(80, 80);
+                this.container.body.immovable = false;
+                this.container.body.mass = 10;
+
+                // Processor (with better graphics)
+                this.processor = this.add.rectangle(700, 520, 80, 100, 0x457b9d);
+                this.physics.add.existing(this.processor, true);
+                this.add.rectangle(700, 520, 60, 80, 0x1d3557);
+                let greenLight = this.add.circle(700, 510, 8, 0x06ffa5, 0.8);
+                this.add.circle(700, 540, 6, 0xff006e, 0.6);
+                // Animate green light
+                this.tweens.add({
+                    targets: greenLight,
+                    alpha: { from: 0.4, to: 1 },
+                    yoyo: true,
+                    repeat: -1,
+                    duration: 800
+                });
+                this.add.text(700, 480, 'Processor', {
+                    fontSize: '14px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Door
+                this.door = this.add.rectangle(880, 500, 30, 120, 0xff6b6b);
+                this.doorLocked = true;
+                this.add.rectangle(880, 500, 20, 100, 0xd62828);
+                this.doorText = this.add.text(880, 440, 'LOCKED', {
+                    fontSize: '12px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Colliders
+                this.physics.add.collider(this.player, this.floor);
+                this.physics.add.collider(this.container, this.floor);
+                this.physics.add.collider(this.player, this.container);
+
+                // Track state
+                this.smallCrates = [];
+                this.processedCount = 0;
+                this.jammed = false;
+
+                // Interaction hint
+                this.hintText = this.add.text(300, 420, '', {
+                    fontSize: '14px',
+                    fill: '#ffff00',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Keyboard
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+                this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+            }
+
+            drawStars() {
+                // Add background panels for spaceship aesthetic
+                this.add.rectangle(100, 300, 150, 500, 0x16213e, 0.3);
+                this.add.rectangle(800, 350, 180, 400, 0x16213e, 0.3);
+
+                // Stars
+                for (let i = 0; i < 50; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    let size = Phaser.Math.Between(1, 2);
+                    this.add.circle(x, y, size, 0xffffff, 0.6);
+                }
+
+                // Distant stars (smaller)
+                for (let i = 0; i < 30; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    this.add.circle(x, y, 1, 0xa8dadc, 0.4);
+                }
+            }
+
+            update() {
+                // Player movement
+                if (this.cursors.left.isDown) {
+                    this.player.setVelocityX(-160);
+                } else if (this.cursors.right.isDown) {
+                    this.player.setVelocityX(160);
+                } else {
+                    this.player.setVelocityX(0);
+                }
+
+                if (this.cursors.up.isDown && this.player.body.touching.down) {
+                    this.player.setVelocityY(-300);
+                }
+
+                this.player.setAccelerationY(600);
+
+                // Container interaction
+                if (!this.containerOpen && this.container) {
+                    let distToContainer = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        this.container.x, this.container.y
+                    );
+
+                    if (distToContainer < 80) {
+                        this.hintText.setPosition(this.container.x, this.container.y - 60);
+                        this.hintText.setText('Press E');
+
+                        if (Phaser.Input.Keyboard.JustDown(this.keyE)) {
+                            this.openContainer();
+                        }
+
+                        // Push container
+                        let angle = Phaser.Math.Angle.Between(
+                            this.player.x, this.player.y,
+                            this.container.x, this.container.y
+                        );
+                        this.container.setVelocityX(Math.cos(angle) * 40);
+                    } else {
+                        this.hintText.setText('');
+                        this.container.setVelocityX(this.container.body.velocity.x * 0.95);
+                    }
+
+                    // Gravity
+                    this.container.setAccelerationY(600);
+
+                    // Check if container jams processor
+                    let distToProc = Phaser.Math.Distance.Between(
+                        this.container.x, this.container.y,
+                        this.processor.x, this.processor.y
+                    );
+
+                    if (distToProc < 90 && !this.jammed) {
+                        this.jamProcessor();
+                    }
+                }
+
+                // Update small crates
+                this.smallCrates.forEach((crate, idx) => {
+                    if (!crate.processed) {
+                        let distPlayer = Phaser.Math.Distance.Between(
+                            this.player.x, this.player.y,
+                            crate.x, crate.y
+                        );
+
+                        if (distPlayer < 40) {
+                            let angle = Phaser.Math.Angle.Between(
+                                this.player.x, this.player.y,
+                                crate.x, crate.y
+                            );
+                            crate.setVelocityX(Math.cos(angle) * 50);
+                        } else {
+                            crate.setVelocityX(crate.body.velocity.x * 0.95);
+                        }
+
+                        crate.setAccelerationY(600);
+
+                        // Check if small crate touches processor
+                        let distProc = Phaser.Math.Distance.Between(
+                            crate.x, crate.y,
+                            this.processor.x, this.processor.y
+                        );
+
+                        if (distProc < 70) {
+                            this.processSmallCrate(crate, idx);
+                        }
+                    }
+                });
+
+                // Check door
+                if (!this.doorLocked && this.player.x > 850) {
+                    this.scene.start('Room3');
+                }
+
+                // Restart
+                if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
+                    this.scene.restart();
+                }
+
+                this.scoreText.setText('Score: ' + globalScore);
+            }
+
+            openContainer() {
+                this.containerOpen = true;
+                this.hintText.setText('');
+
+                // Container disappears
+                this.tweens.add({
+                    targets: this.container,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        if (this.container) this.container.destroy();
+                    }
+                });
+
+                // Educational feedback
+                let openText = this.add.text(300, 450, 'Array opened! 3 items found', {
+                    fontSize: '16px',
+                    fill: '#ffff00',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                let conceptText = this.add.text(300, 480, 'Arrays store multiple values', {
+                    fontSize: '13px',
+                    fill: '#a8dadc'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: openText,
+                    alpha: 0,
+                    y: 400,
+                    duration: 1500,
+                    onComplete: () => openText.destroy()
+                });
+
+                this.tweens.add({
+                    targets: conceptText,
+                    alpha: 0,
+                    y: 430,
+                    duration: 1500,
+                    delay: 200,
+                    onComplete: () => conceptText.destroy()
+                });
+
+                this.time.delayedCall(300, () => {
+                    for (let i = 0; i < 3; i++) {
+                        let crate = this.physics.add.sprite(250 + i * 60, 480, 'crate');
+                        crate.body.setSize(40, 40);
+                        crate.body.immovable = false;
+                        crate.body.mass = 5;
+                        crate.processed = false;
+                        this.physics.add.collider(crate, this.floor);
+                        this.physics.add.collider(this.player, crate);
+                        this.smallCrates.push(crate);
+                    }
+
+                    // Update help text
+                    this.helpText.setText('Now push each item to the Processor!');
+                    this.time.delayedCall(3000, () => {
+                        this.helpText.destroy();
+                    });
+                });
+            }
+
+            processSmallCrate(crate, idx) {
+                if (crate.processed) return;
+                crate.processed = true;
+                this.processedCount++;
+                globalScore += 100;
+
+                this.tweens.add({
+                    targets: crate,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 500,
+                    onComplete: () => crate.destroy()
+                });
+
+                let successText = this.add.text(700, 400, '+100', {
+                    fontSize: '18px',
+                    fill: '#00ff88'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: successText,
+                    alpha: 0,
+                    y: 350,
+                    duration: 800,
+                    onComplete: () => successText.destroy()
+                });
+
+                if (this.processedCount >= 3) {
+                    // Show completion message
+                    let completeText = this.add.text(450, 300, 'All array items processed!', {
+                        fontSize: '20px',
+                        fill: '#00ff88',
+                        fontWeight: 'bold'
+                    }).setOrigin(0.5);
+
+                    this.tweens.add({
+                        targets: completeText,
+                        alpha: 0,
+                        y: 250,
+                        duration: 1500,
+                        onComplete: () => completeText.destroy()
+                    });
+
+                    this.time.delayedCall(600, () => {
+                        this.unlockDoor();
+                    });
+                }
+            }
+
+            jamProcessor() {
+                this.jammed = true;
+                globalScore -= 50;
+
+                let jamText = this.add.text(700, 380, 'JAM! -50', {
+                    fontSize: '24px',
+                    fill: '#ff006e',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+
+                let explanationText = this.add.text(700, 420, "Can't process whole array!", {
+                    fontSize: '14px',
+                    fill: '#ff006e'
+                }).setOrigin(0.5);
+
+                let hintText = this.add.text(700, 445, 'Open it first with E (or press R to restart)', {
+                    fontSize: '13px',
+                    fill: '#ffff00'
+                }).setOrigin(0.5);
+
+                // Shake processor
+                this.tweens.add({
+                    targets: this.processor,
+                    x: this.processor.x + 5,
+                    yoyo: true,
+                    repeat: 8,
+                    duration: 50,
+                    onComplete: () => {
+                        this.processor.x = 700;
+                    }
+                });
+
+                this.tweens.add({
+                    targets: [jamText, explanationText, hintText],
+                    alpha: 0,
+                    y: '-=30',
+                    duration: 2500,
+                    onComplete: () => {
+                        jamText.destroy();
+                        explanationText.destroy();
+                        hintText.destroy();
+                    }
+                });
+
+                // Push container away
+                if (this.container) {
+                    this.container.setVelocityX(-100);
+                }
+            }
+
+            unlockDoor() {
+                this.doorLocked = false;
+                this.door.setFillStyle(0x00ff88);
+                this.doorText.setText('OPEN');
+                this.doorText.setColor('#00ff88');
+
+                // Add unlock animation
+                this.tweens.add({
+                    targets: this.door,
+                    alpha: { from: 0.5, to: 1 },
+                    yoyo: true,
+                    repeat: 3,
+                    duration: 200
+                });
+            }
+        }
+
+        // Room 3 Scene
+        class Room3 extends Phaser.Scene {
+            constructor() {
+                super('Room3');
+            }
+
+            create() {
+                this.cameras.main.setBackgroundColor('#1a1a2e');
+                this.drawStars();
+
+                // Floor with physics
+                this.floor = this.add.rectangle(450, 580, 900, 40, 0x2d3561);
+                this.physics.add.existing(this.floor, true);
+                this.add.rectangle(450, 560, 900, 2, 0x06ffa5, 0.5);
+
+                this.add.text(450, 30, 'Room 3: Loops process items ONE AT A TIME', {
+                    fontSize: '18px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                this.helpText = this.add.text(450, 55, 'Push container into Loop Gate - watch it process sequentially!', {
+                    fontSize: '14px',
+                    fill: '#06ffa5',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                // Loop status display
+                this.loopStatusText = this.add.text(450, 85, '', {
+                    fontSize: '16px',
+                    fill: '#06ffa5',
+                    fontFamily: 'Courier New',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                this.scoreText = this.add.text(20, 60, 'Score: ' + globalScore, {
+                    fontSize: '16px',
+                    fill: '#ffffff'
+                });
+
+                // Restart hint (always visible)
+                this.add.text(880, 20, 'R = Restart', {
+                    fontSize: '14px',
+                    fill: '#ffff00',
+                    fontFamily: 'Courier New'
+                }).setOrigin(1, 0);
+
+                // Player
+                this.player = this.physics.add.sprite(100, 500, 'robot');
+                this.player.setCollideWorldBounds(true);
+                this.player.body.setSize(28, 28);
+
+                // Container
+                this.containerProcessed = false;
+                this.container = this.physics.add.sprite(250, 500, 'container');
+                this.container.body.setSize(80, 80);
+                this.container.body.immovable = false;
+                this.container.body.mass = 10;
+
+                // Loop Gate (with better graphics)
+                this.loopGate = this.add.rectangle(450, 520, 100, 100, 0x06ffa5);
+                this.physics.add.existing(this.loopGate, true);
+                let loopCircle = this.add.circle(450, 520, 35, 0x05d98a);
+                // Add pulsing animation to loop gate
+                this.tweens.add({
+                    targets: loopCircle,
+                    alpha: { from: 0.6, to: 1 },
+                    scale: { from: 0.95, to: 1.05 },
+                    yoyo: true,
+                    repeat: -1,
+                    duration: 1000,
+                    ease: 'Sine.easeInOut'
+                });
+                // Add loop symbol
+                this.add.text(450, 520, 'for', {
+                    fontSize: '18px',
+                    fill: '#000000',
+                    fontWeight: 'bold',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+                // Better positioned and clearer labels
+                this.add.text(450, 445, 'LOOP GATE', {
+                    fontSize: '16px',
+                    fill: '#06ffa5',
+                    fontWeight: 'bold',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+                this.add.text(450, 465, 'Sequential', {
+                    fontSize: '11px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+                this.add.text(450, 478, 'Processing', {
+                    fontSize: '11px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                // Processor (with better graphics)
+                this.processor = this.add.rectangle(750, 520, 80, 100, 0x457b9d);
+                this.physics.add.existing(this.processor, true);
+                this.add.rectangle(750, 520, 60, 80, 0x1d3557);
+                this.processorLight = this.add.circle(750, 510, 8, 0x06ffa5, 0.8);
+                this.add.circle(750, 540, 6, 0xff006e, 0.6);
+                this.add.text(750, 480, 'Processor', {
+                    fontSize: '14px',
+                    fill: '#ffffff',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Processor status indicator
+                this.processorStatusText = this.add.text(750, 450, 'READY', {
+                    fontSize: '13px',
+                    fill: '#00ff88',
+                    fontFamily: 'Courier New',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                // Progress bar background
+                this.progressBarBg = this.add.rectangle(750, 430, 70, 8, 0x1d3557);
+                this.progressBar = this.add.rectangle(750, 430, 0, 8, 0x06ffa5);
+                this.progressBar.setOrigin(0, 0.5);
+                this.progressBar.x = 715;
+                this.progressBarBg.setVisible(false);
+                this.progressBar.setVisible(false);
+
+                // Colliders
+                this.physics.add.collider(this.player, this.floor);
+                this.physics.add.collider(this.container, this.floor);
+                this.physics.add.collider(this.player, this.container);
+
+                // Processor state (single-threaded)
+                this.processorBusy = false;
+                this.processorTimer = 0;
+                this.processingDuration = 900; // milliseconds
+                this.currentProcessingCrate = null;
+                this.processorQueue = [];
+
+                // Loop state
+                this.smallCrates = [];
+                this.loopActive = false;
+                this.loopEmittedCount = 0;
+                this.loopTotalCount = 3;
+                this.processedCount = 0;
+                this.jammed = false;
+                this.levelComplete = false;
+                this.containerInLoop = false;
+
+                // Keyboard
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.keyR = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+            }
+
+            drawStars() {
+                // Add background panels for spaceship aesthetic
+                this.add.rectangle(100, 300, 150, 500, 0x16213e, 0.3);
+                this.add.rectangle(800, 350, 180, 400, 0x16213e, 0.3);
+
+                // Stars
+                for (let i = 0; i < 50; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    let size = Phaser.Math.Between(1, 2);
+                    this.add.circle(x, y, size, 0xffffff, 0.6);
+                }
+
+                // Distant stars (smaller)
+                for (let i = 0; i < 30; i++) {
+                    let x = Phaser.Math.Between(0, 900);
+                    let y = Phaser.Math.Between(0, 600);
+                    this.add.circle(x, y, 1, 0xa8dadc, 0.4);
+                }
+            }
+
+            update() {
+                // Player movement
+                if (this.cursors.left.isDown) {
+                    this.player.setVelocityX(-160);
+                } else if (this.cursors.right.isDown) {
+                    this.player.setVelocityX(160);
+                } else {
+                    this.player.setVelocityX(0);
+                }
+
+                if (this.cursors.up.isDown && this.player.body.touching.down) {
+                    this.player.setVelocityY(-300);
+                }
+
+                this.player.setAccelerationY(600);
+
+                // Update processor status display and progress bar
+                if (this.processorBusy) {
+                    let elapsed = Date.now() - this.processorTimer;
+                    let progress = Math.min(elapsed / this.processingDuration, 1);
+                    this.progressBar.width = progress * 70;
+
+                    if (elapsed >= this.processingDuration) {
+                        this.finishProcessing();
+                    }
+                }
+
+                // Update loop status display
+                if (this.loopActive && this.loopEmittedCount < this.loopTotalCount) {
+                    this.loopStatusText.setText(`Looping: item ${this.loopEmittedCount} of ${this.loopTotalCount}`);
+                } else if (this.loopActive && this.loopEmittedCount >= this.loopTotalCount) {
+                    this.loopStatusText.setText('Loop: waiting for processing...');
+                }
+
+                // Container handling
+                if (!this.containerProcessed && this.container) {
+                    let distToPlayer = Phaser.Math.Distance.Between(
+                        this.player.x, this.player.y,
+                        this.container.x, this.container.y
+                    );
+
+                    if (distToPlayer < 80) {
+                        let angle = Phaser.Math.Angle.Between(
+                            this.player.x, this.player.y,
+                            this.container.x, this.container.y
+                        );
+                        this.container.setVelocityX(Math.cos(angle) * 40);
+                    } else {
+                        this.container.setVelocityX(this.container.body.velocity.x * 0.95);
+                    }
+
+                    this.container.setAccelerationY(600);
+
+                    // Check if container touches Loop Gate
+                    let distToLoop = Phaser.Math.Distance.Between(
+                        this.container.x, this.container.y,
+                        this.loopGate.x, this.loopGate.y
+                    );
+
+                    if (distToLoop < 90 && !this.loopActive && !this.containerInLoop) {
+                        this.activateLoopGate();
+                    }
+
+                    // Check if container jams processor
+                    let distToProc = Phaser.Math.Distance.Between(
+                        this.container.x, this.container.y,
+                        this.processor.x, this.processor.y
+                    );
+
+                    if (distToProc < 90 && !this.jammed && !this.containerProcessed) {
+                        this.jamProcessor();
+                    }
+                }
+
+                // Update small crates
+                this.smallCrates.forEach((crate) => {
+                    if (!crate.processed && !crate.inQueue && !crate.isProcessing) {
+                        // Move towards processor if spawned from loop
+                        if (crate.fromLoop) {
+                            crate.setVelocityX(100);
+                        }
+
+                        crate.setAccelerationY(600);
+
+                        // Check if touches processor
+                        let distProc = Phaser.Math.Distance.Between(
+                            crate.x, crate.y,
+                            this.processor.x, this.processor.y
+                        );
+
+                        if (distProc < 70) {
+                            this.handleCrateAtProcessor(crate);
+                        }
+                    }
+                });
+
+                // Restart
+                if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
+                    if (this.levelComplete) {
+                        globalScore = 0;
+                        this.scene.start('Room1');
+                    } else {
+                        this.scene.restart();
+                    }
+                }
+
+                this.scoreText.setText('Score: ' + globalScore);
+            }
+
+            activateLoopGate() {
+                this.loopActive = true;
+                this.containerProcessed = true;
+                this.containerInLoop = true;
+
+                // Container disappears into loop gate
+                this.tweens.add({
+                    targets: this.container,
+                    alpha: 0,
+                    scale: 0,
+                    x: 450,
+                    y: 520,
+                    duration: 500,
+                    onComplete: () => {
+                        if (this.container) this.container.destroy();
+                    }
+                });
+
+                let loopText = this.add.text(450, 350, 'LOOP ACTIVATED!', {
+                    fontSize: '24px',
+                    fill: '#06ffa5',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                let explanationText = this.add.text(450, 385, 'Processing ONE item at a time...', {
+                    fontSize: '15px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let codeText = this.add.text(450, 410, 'for (item of array) { process(item); }', {
+                    fontSize: '12px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New',
+                    backgroundColor: '#000000',
+                    padding: { x: 8, y: 3 }
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: [loopText, explanationText, codeText],
+                    alpha: 0,
+                    y: '-=30',
+                    duration: 2500,
+                    onComplete: () => {
+                        loopText.destroy();
+                        explanationText.destroy();
+                        codeText.destroy();
+                    }
+                });
+
+                // Update help text
+                if (this.helpText) {
+                    this.helpText.setText('Watch: emit → process → emit next');
+                    this.time.delayedCall(3500, () => {
+                        if (this.helpText) this.helpText.destroy();
+                    });
+                }
+
+                // Emit first crate
+                this.time.delayedCall(600, () => {
+                    this.emitNextCrate();
+                });
+            }
+
+            emitNextCrate() {
+                // Only emit if we haven't reached total and processor is not busy
+                if (this.loopEmittedCount < this.loopTotalCount && !this.processorBusy) {
+                    let crate = this.physics.add.sprite(520, 520, 'crate');
+                    crate.body.setSize(40, 40);
+                    crate.body.immovable = false;
+                    crate.body.mass = 5;
+                    crate.processed = false;
+                    crate.fromLoop = true;
+                    crate.inQueue = false;
+                    crate.isProcessing = false;
+                    this.physics.add.collider(crate, this.floor);
+                    this.smallCrates.push(crate);
+
+                    // Highlight current crate
+                    crate.highlight = this.add.circle(crate.x, crate.y, 25, 0x06ffa5, 0);
+                    crate.highlight.setStrokeStyle(3, 0x06ffa5, 0.8);
+
+                    // Show iteration counter
+                    let iterText = this.add.text(520, 475, `Item ${this.loopEmittedCount + 1} of ${this.loopTotalCount}`, {
+                        fontSize: '13px',
+                        fill: '#06ffa5',
+                        fontWeight: 'bold',
+                        fontFamily: 'Courier New',
+                        backgroundColor: '#000000',
+                        padding: { x: 6, y: 2 }
+                    }).setOrigin(0.5);
+
+                    this.tweens.add({
+                        targets: iterText,
+                        alpha: 0,
+                        y: '-=20',
+                        duration: 1200,
+                        onComplete: () => iterText.destroy()
+                    });
+
+                    this.loopEmittedCount++;
+                }
+            }
+
+            handleCrateAtProcessor(crate) {
+                // If processor is busy, add to queue
+                if (this.processorBusy) {
+                    if (!crate.inQueue && !crate.isProcessing) {
+                        this.addToQueue(crate);
+                    }
+                } else {
+                    // Processor is free, begin processing
+                    if (!crate.processed && !crate.isProcessing) {
+                        this.beginProcessing(crate);
+                    }
+                }
+            }
+
+            addToQueue(crate) {
+                crate.inQueue = true;
+                crate.setVelocityX(0);
+                this.processorQueue.push(crate);
+
+                // Position in queue lane (to the left of processor)
+                let queuePos = this.processorQueue.length - 1;
+                let targetX = 680 - (queuePos * 50);
+                let targetY = 540;
+
+                this.tweens.add({
+                    targets: crate,
+                    x: targetX,
+                    y: targetY,
+                    duration: 300
+                });
+
+                // Dim queued crates
+                if (crate.highlight) {
+                    crate.highlight.setAlpha(0.3);
+                }
+            }
+
+            beginProcessing(crate) {
+                crate.isProcessing = true;
+                crate.setVelocityX(0);
+                this.currentProcessingCrate = crate;
+                this.processorBusy = true;
+                this.processorTimer = Date.now();
+
+                // Update status
+                this.processorStatusText.setText('BUSY');
+                this.processorStatusText.setColor('#ff006e');
+                this.progressBarBg.setVisible(true);
+                this.progressBar.setVisible(true);
+                this.progressBar.width = 0;
+
+                // Change processor light to red
+                this.processorLight.setFillStyle(0xff006e);
+
+                // Move crate into processor
+                this.tweens.add({
+                    targets: crate,
+                    x: 750,
+                    y: 520,
+                    scale: 0.8,
+                    duration: 300
+                });
+
+                // Pulse highlight
+                if (crate.highlight) {
+                    crate.highlight.x = crate.x;
+                    crate.highlight.y = crate.y;
+                    this.tweens.add({
+                        targets: crate.highlight,
+                        alpha: { from: 0.8, to: 0.3 },
+                        scale: { from: 1, to: 1.2 },
+                        yoyo: true,
+                        repeat: 2,
+                        duration: 300
+                    });
+                }
+            }
+
+            finishProcessing() {
+                this.processorBusy = false;
+                this.processedCount++;
+                globalScore += 100;
+
+                let crate = this.currentProcessingCrate;
+                crate.processed = true;
+
+                // Hide progress bar
+                this.progressBarBg.setVisible(false);
+                this.progressBar.setVisible(false);
+
+                // Update status
+                this.processorStatusText.setText('READY');
+                this.processorStatusText.setColor('#00ff88');
+                this.processorLight.setFillStyle(0x06ffa5);
+
+                // Destroy crate with animation
+                if (crate.highlight) crate.highlight.destroy();
+
+                this.tweens.add({
+                    targets: crate,
+                    alpha: 0,
+                    scale: 0.3,
+                    duration: 400,
+                    onComplete: () => crate.destroy()
+                });
+
+                let successText = this.add.text(750, 390, '+100', {
+                    fontSize: '18px',
+                    fill: '#00ff88',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: successText,
+                    alpha: 0,
+                    y: 350,
+                    duration: 800,
+                    onComplete: () => successText.destroy()
+                });
+
+                this.currentProcessingCrate = null;
+
+                // Check if loop should emit next
+                if (this.loopActive && this.loopEmittedCount < this.loopTotalCount) {
+                    this.time.delayedCall(200, () => {
+                        this.emitNextCrate();
+                    });
+                }
+
+                // Process next in queue if any
+                if (this.processorQueue.length > 0) {
+                    let nextCrate = this.processorQueue.shift();
+                    nextCrate.inQueue = false;
+
+                    // Restore highlight
+                    if (nextCrate.highlight) {
+                        nextCrate.highlight.setAlpha(1);
+                    }
+
+                    this.time.delayedCall(300, () => {
+                        this.beginProcessing(nextCrate);
+                    });
+
+                    // Reposition remaining queue
+                    this.processorQueue.forEach((qCrate, idx) => {
+                        let targetX = 680 - (idx * 50);
+                        this.tweens.add({
+                            targets: qCrate,
+                            x: targetX,
+                            duration: 300
+                        });
+                    });
+                }
+
+                // Check for level completion
+                if (this.processedCount >= this.loopTotalCount) {
+                    this.time.delayedCall(800, () => {
+                        this.showComplete();
+                    });
+                }
+            }
+
+            jamProcessor() {
+                this.jammed = true;
+                globalScore -= 50;
+
+                let jamText = this.add.text(750, 360, 'JAM! -50', {
+                    fontSize: '24px',
+                    fill: '#ff006e',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+
+                let explanationText = this.add.text(750, 395, "Processor only accepts", {
+                    fontSize: '14px',
+                    fill: '#ff006e'
+                }).setOrigin(0.5);
+
+                let explanationText2 = this.add.text(750, 415, "SINGLE crates!", {
+                    fontSize: '14px',
+                    fill: '#ff006e',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                let hintText = this.add.text(750, 440, 'Use the Loop Gate! (or press R)', {
+                    fontSize: '12px',
+                    fill: '#ffff00'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: this.processor,
+                    x: this.processor.x + 5,
+                    yoyo: true,
+                    repeat: 8,
+                    duration: 50,
+                    onComplete: () => {
+                        this.processor.x = 750;
+                    }
+                });
+
+                this.tweens.add({
+                    targets: [jamText, explanationText, explanationText2, hintText],
+                    alpha: 0,
+                    y: '-=30',
+                    duration: 3000,
+                    onComplete: () => {
+                        jamText.destroy();
+                        explanationText.destroy();
+                        explanationText2.destroy();
+                        hintText.destroy();
+                    }
+                });
+
+                if (this.container) {
+                    this.container.setVelocityX(-120);
+                }
+            }
+
+            showComplete() {
+                this.levelComplete = true;
+
+                let overlay = this.add.rectangle(450, 300, 900, 600, 0x000000, 0.8);
+
+                let title = this.add.text(450, 150, 'LEVEL COMPLETE!', {
+                    fontSize: '48px',
+                    fill: '#00ff88',
+                    fontFamily: 'Courier New',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                let scoreText = this.add.text(450, 220, 'Final Score: ' + globalScore, {
+                    fontSize: '32px',
+                    fill: '#ffffff',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let summary = this.add.text(450, 280, 'What you learned:', {
+                    fontSize: '18px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New',
+                    fontWeight: 'bold'
+                }).setOrigin(0.5);
+
+                let lesson1 = this.add.text(450, 315, '• Arrays store multiple values in one container', {
+                    fontSize: '14px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let lesson2 = this.add.text(450, 340, '• You must access array items individually', {
+                    fontSize: '14px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let lesson3 = this.add.text(450, 365, '• Loops process items ONE AT A TIME sequentially', {
+                    fontSize: '14px',
+                    fill: '#f4a261',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let lesson4 = this.add.text(450, 387, '• Each item waits for the previous one to finish', {
+                    fontSize: '13px',
+                    fill: '#a8dadc',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                let codeExample = this.add.text(450, 410, 'for (item of array) { process(item); }', {
+                    fontSize: '16px',
+                    fill: '#06ffa5',
+                    fontFamily: 'Courier New',
+                    backgroundColor: '#000000',
+                    padding: { x: 10, y: 5 }
+                }).setOrigin(0.5);
+
+                let restartText = this.add.text(450, 470, 'Press R to restart from Room 1', {
+                    fontSize: '18px',
+                    fill: '#ffff00',
+                    fontFamily: 'Courier New'
+                }).setOrigin(0.5);
+
+                this.tweens.add({
+                    targets: [title, scoreText, summary, lesson1, lesson2, lesson3, lesson4, codeExample, restartText],
+                    alpha: { from: 0, to: 1 },
+                    duration: 800,
+                    delay: this.tweens.stagger(100)
+                });
+            }
+        }
+
+        // Phaser config
+        const config = {
+            type: Phaser.AUTO,
+            width: 900,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 0 },
+                    debug: false
+                }
+            },
+            scene: [Room1, Room2, Room3]
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+
+</html>
