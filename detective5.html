@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Automation Autopsy — Multi Case POC</title>
+  <style>
+    :root{
+      --bg:#0c1220;
+      --panel:#121a2e;
+      --ink:#e9f1ff;
+      --muted:#a8b3d9;
+      --accent:#72e6a6;
+      --accent2:#7bb5ff;
+      --warn:#ffcf6e;
+      --bad:#ff6b8a;
+      --shadow: rgba(0,0,0,.35);
+      --border: rgba(255,255,255,.08);
+      --focus: rgba(255,255,255,.16);
+    }
+
+    * { box-sizing: border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, rgba(123,181,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(114,230,166,.12), transparent 55%),
+        radial-gradient(700px 500px at 60% 120%, rgba(255,207,110,.10), transparent 60%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .topbar{
+      padding: 12px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(18,26,46,.65);
+      backdrop-filter: blur(6px);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .badge{ width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+      background: linear-gradient(145deg, rgba(123,181,255,.35), rgba(114,230,166,.25));
+      border:1px solid rgba(255,255,255,.10); box-shadow: 0 10px 22px var(--shadow); }
+
+    .titleblock .kicker{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+    .titleblock h1{ margin:2px 0 0; font-size:16px; font-weight:750; }
+
+    .top-controls{ display:flex; gap:8px; align-items:center; }
+
+    .levelBtn{
+      border-radius:10px; padding:8px 10px; background: rgba(15,22,40,.65);
+      border:1px solid var(--border); color:var(--muted); font-weight:800; cursor:pointer;
+    }
+    .levelBtn.active{ background: linear-gradient(145deg, rgba(123,181,255,.28), rgba(114,230,166,.22)); color:var(--ink); border-color: rgba(255,255,255,.12); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+
+    .scorebox{ display:flex; align-items:center; gap:12px; color:var(--muted); font-size:13px; }
+    .scorepill{ padding:8px 10px; border-radius:12px; background: rgba(15,22,40,.75); border:1px solid var(--border); font-weight:800; }
+
+    .container{ padding:18px; display:grid; grid-template-columns: 340px 1fr 340px; gap:14px; max-width:1240px; margin:0 auto; }
+
+    .panel{ background: rgba(18,26,46,.78); border-radius:16px; border:1px solid var(--border); box-shadow:0 18px 40px var(--shadow); overflow:hidden; }
+    .panel header{ padding:12px; border-bottom:1px solid var(--border); background: rgba(15,22,40,.55); display:flex; align-items:center; justify-content:space-between; }
+    .panel header h2{ margin:0; font-size:13px; text-transform:uppercase; color:var(--muted); font-weight:900; }
+
+    .content{ padding:12px; }
+
+    /* Instructions */
+    .instructionsPanel .content{ padding:12px; }
+    .instructionsBox{ border-radius:14px; padding:12px; background: rgba(12,18,32,.55); border:1px solid var(--border); }
+    .instructionsBox h3{ margin:0 0 8px; font-size:14px; font-weight:900; }
+    .instructionsBox .line{ color:var(--muted); font-size:13px; margin:8px 0; display:flex; gap:8px; align-items:flex-start; }
+    .bubbleNum{ width:24px; height:24px; display:grid; place-items:center; border-radius:10px; background: rgba(123,181,255,.18); border:1px solid rgba(123,181,255,.25); font-weight:900; }
+
+    .goalPill{ margin-top:10px; padding:10px; border-radius:14px; background: rgba(114,230,166,.08); border:1px solid rgba(114,230,166,.18); font-size:13px; color:var(--ink); }
+
+    /* Steps list */
+    .steps{ display:flex; flex-direction:column; gap:10px; margin-top:12px; }
+    .step{ border-radius:14px; padding:10px; background: rgba(15,22,40,.65); border:1px solid var(--border); cursor:pointer; transition: transform .08s, border-color .12s; }
+    .step:hover{ transform: translateY(-1px); border-color: var(--focus); }
+    .step.selected{ background: rgba(18,30,56,.75); outline: 2px solid rgba(123,181,255,.28); }
+    .step .name{ font-weight:900; font-size:13px; }
+    .step .type{ font-size:12px; color:var(--muted); margin-top:4px; }
+    .status{ font-size:11px; padding:4px 8px; border-radius:999px; font-weight:800; }
+
+    .status.ok{ color:#0b2d25; background: rgba(114,230,166,.92); }
+    .status.skip{ color:#3b2a06; background: rgba(255,207,110,.92); }
+    .status.never{ color:#1a2b35; background: rgba(111,231,255,.88); }
+    .status.err{ color:#3a0a14; background: rgba(255,107,138,.92); }
+
+    /* Evidence */
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tabbtn{ padding:8px 10px; border-radius:999px; background: rgba(15,22,40,.65); border:1px solid var(--border); color:var(--muted); cursor:pointer; font-weight:800; }
+    .tabbtn.active{ background: rgba(18,30,56,.75); color:var(--ink); border-color: rgba(123,181,255,.35); }
+    .evidence{ margin-top:12px; border-radius:14px; background: rgba(15,22,40,.55); border:1px solid var(--border); padding:12px; min-height:260px; }
+    .kv{ display:grid; grid-template-columns:160px 1fr; gap:8px 12px; margin-top:8px; font-size:13px; }
+    pre{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; background: rgba(10,15,26,.65); padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,.10); overflow:auto; }
+
+    /* Right: submission */
+    .submission{ border-radius:14px; padding:12px; background: rgba(15,22,40,.55); border:1px solid var(--border); }
+    .submission h3{ margin:0 0 8px; font-weight:900; }
+    .currentPick{ margin-top:10px; padding:10px; border-radius:12px; background: rgba(10,15,26,.55); border:1px solid rgba(255,255,255,.06); }
+    .currentPick .label{ color:var(--muted); font-size:12px; }
+    .currentPick .value{ margin-top:6px; font-weight:900; }
+
+    .btn{ width:100%; padding:12px 14px; border-radius:14px; border:1px solid var(--border); background: rgba(15,22,40,.75); color:var(--ink); font-weight:900; cursor:pointer; box-shadow:0 14px 30px var(--shadow); margin-top:10px; }
+    .btn.key{ background: linear-gradient(145deg, rgba(123,181,255,.40), rgba(114,230,166,.24)); border-color: rgba(255,255,255,.14); outline:2px solid rgba(114,230,166,.12); box-shadow: 0 18px 40px rgba(0,0,0,.40); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none; }
+
+    .choices{ margin-top:10px; display:flex; flex-direction:column; gap:10px; }
+    .choice{ padding:10px; border-radius:12px; background: rgba(15,22,40,.65); border:1px solid var(--border); cursor:pointer; }
+    .choice.selected{ background: rgba(18,30,56,.75); outline:2px solid rgba(123,181,255,.28); }
+
+    .result{ margin-top:12px; padding:12px; border-radius:12px; background: rgba(15,22,40,.55); border:1px solid var(--border); display:none; }
+    .result.good{ border-color: rgba(114,230,166,.25); }
+    .result.bad{ border-color: rgba(255,107,138,.25); }
+
+    .actionsRow{ display:flex; gap:10px; margin-top:12px; }
+    .actionsRow .btn{ flex:1 1 120px; width:auto; }
+
+    .footerline{ padding:12px 18px 20px; color: rgba(233,241,255,.55); font-size:12px; text-align:center; }
+
+    @media (max-width:1100px){
+      .container{ grid-template-columns: 340px 1fr; }
+      .rightcol{ grid-column:1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="badge">🚀</div>
+      <div class="titleblock">
+        <div class="kicker">Cozy Ship Systems Lab</div>
+        <h1>Automation Autopsy</h1>
+      </div>
+    </div>
+
+    <div class="top-controls">
+      <button class="levelBtn" id="prevLevelBtn">◀ Prev</button>
+      <div id="levelButtons"></div>
+      <button class="levelBtn" id="nextLevelBtn">Next ▶</button>
+    </div>
+
+    <div class="scorebox">
+      <div>Score</div>
+      <div class="scorepill" id="scorePill">0</div>
+    </div>
+  </div>
+
+  <main class="container">
+    <!-- Left: instructions + steps -->
+    <div>
+      <section class="panel instructionsPanel">
+        <header>
+          <h2>Instructions</h2>
+          <span class="hint">Two-step answer</span>
+        </header>
+        <div class="content">
+          <div class="instructionsBox">
+            <h3>How to play</h3>
+            <div class="line"><div class="bubbleNum">1</div><div>Click a Zap step to inspect it in the Evidence Console.</div></div>
+            <div class="line"><div class="bubbleNum">2</div><div>Pick the first step where things go wrong, then submit it.</div></div>
+            <div class="line"><div class="bubbleNum">3</div><div>Choose the best diagnosis for that step and submit.</div></div>
+            <div class="goalPill"><b>Your goal:</b> Identify the earliest step that causes the Zap to stop behaving correctly.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" style="margin-top:14px;">
+        <header>
+          <h2>Zap Steps</h2>
+          <span class="hint">Click to inspect</span>
+        </header>
+        <div class="content">
+          <div class="steps" id="steps"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Middle: evidence -->
+    <section class="panel">
+      <header>
+        <h2>Evidence Console</h2>
+        <span class="hint" id="evidenceHint">Select a step to see evidence</span>
+      </header>
+      <div class="content">
+        <div class="tabs" id="tabs"></div>
+        <div class="evidence" id="evidence">Select a step to inspect evidence.</div>
+      </div>
+    </section>
+
+    <!-- Right: submission -->
+    <section class="panel rightcol">
+      <header>
+        <h2>Submit</h2>
+        <span class="hint">Step, then diagnosis</span>
+      </header>
+      <div class="content">
+        <div class="submission">
+          <h3>Case Brief</h3>
+          <div class="small" id="briefText"></div>
+
+          <div class="currentPick">
+            <div class="label">Selected step</div>
+            <div class="value" id="selectedStepLabel">None yet</div>
+          </div>
+
+          <button class="btn key" id="submitStepBtn" disabled>Submit selected step</button>
+          <div class="small" id="submitStepHelp" style="margin-top:8px;">Click a step on the left, then submit it here.</div>
+        </div>
+
+        <div id="diagnosisArea" style="display:none;">
+          <div class="small">Choose the best diagnosis for the step you submitted:</div>
+          <div class="choices" id="choices"></div>
+          <button class="btn key" id="submitDiagnosisBtn" disabled>Submit diagnosis</button>
+        </div>
+
+        <div class="result" id="resultBox"></div>
+
+        <div class="actionsRow">
+          <button class="btn" id="resetBtn">Restart case</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="footerline">Three cases included in this POC. Inspect the evidence. Make your call.</div>
+
+<script>
+  // =========================
+  // Cases data (3 cases)
+  // =========================
+  const CASES = [
+    // Case 1: Filter exact vs contains (existing)
+    {
+      title: "Case 1",
+      story: {
+        whatShouldHappen: "When a shipment update arrives, post an alert in #crew-announcements.",
+        whatHappened: "Nothing was posted."
+      },
+      steps: [
+        {
+          id: "t1",
+          name: "Slack: New Message Posted",
+          type: "Trigger",
+          status: "ok",
+          summary: "A message appears in #shipping-updates",
+          evidence: {
+            Logs: { title: "Task Run Timeline", body: ["Run started: 2026-02-03 10:12:08", "Trigger found a new message", "Step 2 executed", "Step 3 skipped", "Step 4 skipped", "Run completed"] },
+            "Input/Output": {
+              title: "Trigger Output",
+              kv: { "channel": "#shipping-updates", "message_text": "Order 1842 status: shipped ✅", "user":"warehouse-bot", "timestamp":"1706983928" },
+              json: { channel: "shipping-updates", text: "Order 1842 status: shipped ✅", user: "warehouse-bot", ts: "1706983928" }
+            }
+          }
+        },
+        {
+          id: "s2",
+          name: "Filter: Only if status is Shipped",
+          type: "Filter",
+          status: "ok",
+          summary: "Checks whether message qualifies",
+          evidence: {
+            Logs:{ title:"Filter Execution", body:["Filter evaluated: TRUE? No.","Result: Conditions not met","Reason: Exact match failed"] },
+            "Input/Output": { title:"Filter Conditions", kv: { "Field evaluated":"message_text", "Operator":"Exactly matches", "Expected value":"Shipped", "Actual value":"Order 1842 status: shipped ✅" } }
+          }
+        },
+        {
+          id: "s3",
+          name: "Formatter: Make Announcement Text",
+          type: "Action",
+          status: "skip",
+          summary: "Formats the final message",
+          evidence: { Logs:{ title:"Step Status", body:["This step did not run.","Reason: A previous step was skipped or blocked."] } }
+        },
+        {
+          id: "s4",
+          name: "Slack: Send Channel Message (#crew-announcements)",
+          type: "Action",
+          status: "skip",
+          summary: "Posts announcement to crew",
+          evidence: { Logs:{ title:"Step Status", body:["This step did not run.","Reason: A previous step was skipped or blocked."] } }
+        }
+      ],
+      correct: { guiltyStepId: "s2", diagnosisId: "d1" },
+      diagnoses: [
+        { id: "d1", text: "The filter uses exact match, but the message will not equal \"Shipped\". Use contains or transform the value first." },
+        { id: "d2", text: "The trigger is not firing, so the Zap never runs." },
+        { id: "d3", text: "Slack cannot post to the channel due to missing permissions." },
+        { id: "d4", text: "The formatter step is broken and returns empty output." }
+      ]
+    },
+
+    // Case 2: Private channel / bot not a member
+    {
+      title: "Case 2",
+      story: {
+        whatShouldHappen: "When a private channel message arrives, a public alert should be posted.",
+        whatHappened: "No alert was posted."
+      },
+      steps: [
+        {
+          id: "t1",
+          name: "Slack: New Message in Channel",
+          type: "Trigger",
+          status: "never",
+          summary: "Listening for messages in a private channel",
+          evidence: {
+            Logs: { title: "Task Run Timeline", body: ["Run attempted: 2026-02-03 11:00:20", "Trigger did not detect matching messages", "No steps executed"] },
+            "Input/Output": { title: "Trigger Settings", kv: { "Listens to": "#private-inventory", "Trigger type":"New message in channel", "Bot member?":"No" } }
+          }
+        },
+        {
+          id: "s2",
+          name: "Filter: Message contains 'restocked'",
+          type: "Filter",
+          status: "never",
+          summary: "Checks whether the message is a restock note",
+          evidence: {
+            Logs: { title:"Filter Status", body:["Filter did not run because trigger didn't fire."] },
+            "Input/Output": { title:"Filter Conditions", kv: { "Field evaluated": "message_text", "Operator":"Contains", "Expected":"restocked" } }
+          }
+        },
+        {
+          id: "s3",
+          name: "Formatter: Craft Announcement",
+          type: "Action",
+          status: "never",
+          summary: "Builds announcement text",
+          evidence: { Logs:{ title:"Step Status", body:["Did not run."] } }
+        },
+        {
+          id: "s4",
+          name: "Slack: Post to #crew-announcements",
+          type: "Action",
+          status: "never",
+          summary: "Should post public message",
+          evidence: { Logs:{ title:"Step Status", body:["Did not run."] } }
+        }
+      ],
+      correct: { guiltyStepId: "t1", diagnosisId: "d1" },
+      diagnoses: [
+        { id: "d1", text: "The bot isn't a member of the private channel, so the trigger can't see messages there." },
+        { id: "d2", text: "The filter condition is wrong and excludes valid messages." },
+        { id: "d3", text: "Slack API returned a 403 when trying to post to the public channel." },
+        { id: "d4", text: "There is a network outage causing no steps to run." }
+      ]
+    },
+
+    // Case 3: API 400 missing required field
+    {
+      title: "Case 3",
+      story: {
+        whatShouldHappen: "When an event happens, a record should be created in the remote system.",
+        whatHappened: "The API step failed with a 400 response."
+      },
+      steps: [
+        {
+          id: "t1",
+          name: "Webhook: Event Received",
+          type: "Trigger",
+          status: "ok",
+          summary: "Incoming webhook fired with payload",
+          evidence: {
+            Logs: { title: "Task Run Timeline", body: ["Run started: 2026-02-03 11:42:08", "Trigger received payload", "Step 2 executed", "Step 3 errored", "Run completed with errors"] },
+            "Input/Output": { title: "Payload Snapshot", kv: { "id":"evt_999", "title":"New metric", "value": "" }, json: { id: "evt_999", title:"New metric", value: "" } }
+          }
+        },
+        {
+          id: "s2",
+          name: "Formatter: Build API Body",
+          type: "Action",
+          status: "ok",
+          summary: "Constructs the request body for API call",
+          evidence: {
+            Logs: { title: "Formatter Output", body: ["Formatter produced request body", "Body includes 'value' field (empty string)"] },
+            "Input/Output": { title: "Constructed Body", kv: { "body.id":"evt_999", "body.title":"New metric", "body.value":"(empty string)" }, json: { id: "evt_999", title:"New metric", value: "" } }
+          }
+        },
+        {
+          id: "s3",
+          name: "HTTP: POST /records",
+          type: "Action",
+          status: "err",
+          summary: "Creates a record in the external system",
+          evidence: {
+            Logs: { title: "HTTP Response", body: ["Request sent to https://api.example.com/records","Response: 400 Bad Request","Body: { \"error\": \"field 'value' is required\" }"] },
+            "Input/Output": { title: "Request Body", kv: { "id":"evt_999", "title":"New metric", "value":"(empty string)" }, json: { id: "evt_999", title:"New metric", value: "" } }
+          }
+        },
+        {
+          id: "s4",
+          name: "Notifier: Alert Owner",
+          type: "Action",
+          status: "skip",
+          summary: "Sends an internal alert",
+          evidence: { Logs:{ title:"Step Status", body:["Skipped due to previous error"] } }
+        }
+      ],
+      correct: { guiltyStepId: "s3", diagnosisId: "d1" },
+      diagnoses: [
+        { id: "d1", text: "The API returned 400 because required field 'value' is empty. The formatter should populate it." },
+        { id: "d2", text: "Authentication failed; the API key is invalid." },
+        { id: "d3", text: "The remote endpoint returned 429 rate limit." },
+        { id: "d4", text: "The trigger payload was malformed and nothing ran." }
+      ]
+    }
+  ];
+
+  // =========================
+  // Game state
+  // =========================
+  let currentIndex = 0; // case index
+  let selectedStepId = null;
+  let submittedStepId = null;
+  let selectedDiagnosisId = null;
+  let score = 0;
+  let stepLocked = false;
+  let diagnosisLocked = false;
+
+  const POINTS = { correctStep: 50, correctDiagnosis: 50, wrongStep: -15, wrongDiagnosis: -10 };
+
+  // =========================
+  // DOM refs
+  // =========================
+  const stepsEl = document.getElementById("steps");
+  const tabsEl = document.getElementById("tabs");
+  const evidenceEl = document.getElementById("evidence");
+  const evidenceHintEl = document.getElementById("evidenceHint");
+
+  const briefTextEl = document.getElementById("briefText");
+  const selectedStepLabelEl = document.getElementById("selectedStepLabel");
+  const submitStepBtn = document.getElementById("submitStepBtn");
+  const submitStepHelp = document.getElementById("submitStepHelp");
+
+  const diagnosisArea = document.getElementById("diagnosisArea");
+  const choicesEl = document.getElementById("choices");
+  const submitDiagnosisBtn = document.getElementById("submitDiagnosisBtn");
+
+  const resultBox = document.getElementById("resultBox");
+  const scorePill = document.getElementById("scorePill");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const levelButtonsEl = document.getElementById("levelButtons");
+  const prevLevelBtn = document.getElementById("prevLevelBtn");
+  const nextLevelBtn = document.getElementById("nextLevelBtn");
+
+  // =========================
+  // Helpers
+  // =========================
+  function escapeHtml(str){ return String(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
+  function updateScore(){ scorePill.textContent = String(score); }
+
+  function activeCase(){ return CASES[currentIndex]; }
+
+  function statusLabel(status){
+    if(status === "ok") return { cls: "ok", text: "RAN" };
+    if(status === "skip") return { cls: "skip", text: "SKIPPED" };
+    if(status === "never") return { cls: "never", text: "NEVER RAN" };
+    if(status === "err") return { cls: "err", text: "ERROR" };
+    return { cls: "", text: String(status).toUpperCase() };
+  }
+
+  // =========================
+  // Render level buttons
+  // =========================
+  function renderLevelButtons(){
+    levelButtonsEl.innerHTML = "";
+    CASES.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "levelBtn" + (i === currentIndex ? " active" : "");
+      b.textContent = c.title;
+      b.addEventListener("click", () => {
+        if (i === currentIndex) return;
+        loadCase(i);
+      });
+      levelButtonsEl.appendChild(b);
+    });
+    prevLevelBtn.disabled = currentIndex === 0;
+    nextLevelBtn.disabled = currentIndex === CASES.length - 1;
+  }
+
+  prevLevelBtn.addEventListener("click", () => { if(currentIndex>0) loadCase(currentIndex-1); });
+  nextLevelBtn.addEventListener("click", () => { if(currentIndex<CASES.length-1) loadCase(currentIndex+1); });
+
+  // =========================
+  // Render steps
+  // =========================
+  function renderSteps(){
+    stepsEl.innerHTML = "";
+    const c = activeCase();
+    c.steps.forEach(step => {
+      const st = statusLabel(step.status);
+      const el = document.createElement("div");
+      el.className = "step" + (step.id === selectedStepId ? " selected" : "");
+      el.innerHTML = `
+        <div class="top">
+          <div>
+            <div class="name">${escapeHtml(step.name)}</div>
+            <div class="type">${escapeHtml(step.type)} · ${escapeHtml(step.summary)}</div>
+          </div>
+          <div class="status ${st.cls}">${st.text}</div>
+        </div>
+      `;
+      el.addEventListener("click", () => {
+        if (stepLocked) return;
+        selectedStepId = step.id;
+        selectedStepLabelEl.textContent = step.name;
+        submitStepBtn.disabled = false;
+        renderSteps();
+        renderEvidence(step.id);
+      });
+      stepsEl.appendChild(el);
+    });
+  }
+
+  // =========================
+  // Render evidence
+  // =========================
+  function renderEvidence(stepId){
+    const c = activeCase();
+    const step = c.steps.find(s => s.id === stepId);
+    if(!step){ tabsEl.innerHTML = ""; evidenceEl.innerHTML = `<div class="small">Select a step to inspect evidence.</div>`; return; }
+    evidenceHintEl.textContent = `Inspecting: ${step.name}`;
+
+    const keys = Object.keys(step.evidence || {});
+    tabsEl.innerHTML = "";
+    const activeKey = keys[0] || null;
+    if(!activeKey){ evidenceEl.innerHTML = `<div class="small">No evidence available.</div>`; return; }
+
+    keys.forEach((k, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "tabbtn" + (idx===0 ? " active" : "");
+      btn.textContent = k;
+      btn.addEventListener("click", () => {
+        [...tabsEl.querySelectorAll(".tabbtn")].forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderEvidenceBody(step, k);
+      });
+      tabsEl.appendChild(btn);
+    });
+    renderEvidenceBody(step, activeKey);
+  }
+  function renderEvidenceBody(step, key){
+    const e = (step.evidence || {})[key];
+    if(!e){ evidenceEl.innerHTML = `<div class="small">No evidence.</div>`; return; }
+    let html = `<div style="font-weight:900;margin-bottom:8px;">${escapeHtml(e.title || key)}</div>`;
+    if(e.kv){
+      html += `<div class="kv">` + Object.entries(e.kv).map(([k,v]) => `<div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(String(v))}</div>`).join("") + `</div>`;
+    }
+    if(e.body && Array.isArray(e.body)){ html += `<pre>${escapeHtml(e.body.join("\n"))}</pre>`; }
+    if(e.json){ html += `<div class="small" style="margin-top:8px;color:var(--muted);">Payload snapshot</div><pre>${escapeHtml(JSON.stringify(e.json,null,2))}</pre>`; }
+    evidenceEl.innerHTML = html;
+  }
+
+  // =========================
+  // Diagnoses render
+  // =========================
+  function renderDiagnoses(){
+    choicesEl.innerHTML = "";
+    selectedDiagnosisId = null;
+    submitDiagnosisBtn.disabled = true;
+    const c = activeCase();
+    c.diagnoses.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "choice";
+      el.innerHTML = `<div class="label">${escapeHtml(d.text)}</div>`;
+      el.addEventListener("click", () => {
+        if (!stepLocked || diagnosisLocked) return;
+        selectedDiagnosisId = d.id;
+        [...choicesEl.querySelectorAll(".choice")].forEach(x => x.classList.remove("selected"));
+        el.classList.add("selected");
+        submitDiagnosisBtn.disabled = false;
+      });
+      choicesEl.appendChild(el);
+    });
+  }
+
+  // =========================
+  // Submission flow
+  // =========================
+  submitStepBtn.addEventListener("click", () => {
+    if(!selectedStepId || stepLocked) return;
+    stepLocked = true;
+    submittedStepId = selectedStepId;
+    const c = activeCase();
+    const submitted = c.steps.find(s => s.id === submittedStepId);
+    submitStepHelp.innerHTML = `<b>Submitted:</b> ${escapeHtml(submitted.name)} — now pick a diagnosis.`;
+    submitStepBtn.disabled = true;
+
+    // immediate scoring for step
+    if (submittedStepId === c.correct.guiltyStepId) score += POINTS.correctStep; else score += POINTS.wrongStep;
+    updateScore();
+
+    diagnosisArea.style.display = "block";
+    renderDiagnoses();
+  });
+
+  submitDiagnosisBtn.addEventListener("click", () => {
+    if(!selectedDiagnosisId || diagnosisLocked) return;
+    diagnosisLocked = true;
+    submitDiagnosisBtn.disabled = true;
+
+    const c = activeCase();
+    const correctStep = submittedStepId === c.correct.guiltyStepId;
+    const correctDx = selectedDiagnosisId === c.correct.diagnosisId;
+
+    if (correctDx) score += POINTS.correctDiagnosis; else score += POINTS.wrongDiagnosis;
+    updateScore();
+
+    const guiltyName = c.steps.find(s => s.id === c.correct.guiltyStepId).name;
+    const chosenDx = c.diagnoses.find(d => d.id === selectedDiagnosisId).text;
+
+    resultBox.style.display = "block";
+    resultBox.className = "result " + (correctStep && correctDx ? "good" : "bad");
+
+    if (correctStep && correctDx){
+      resultBox.innerHTML = `<h3>✅ Correct</h3>
+        <p><b>Broken step:</b> ${escapeHtml(guiltyName)}</p>
+        <p><b>Your diagnosis:</b> ${escapeHtml(chosenDx)}</p>
+        <p><b>Fix hint:</b> ${escapeHtml(simpleFixHint(c.correct.diagnosisId))}</p>`;
+    } else {
+      resultBox.innerHTML = `<h3>🛰️ Not quite</h3>
+        <p><b>Truth:</b> The first problematic step is <b>${escapeHtml(guiltyName)}</b>.</p>
+        <p><b>Why:</b> ${escapeHtml(simpleWhy(c.correct.guiltyStepId))}</p>
+        <p><b>Fix hint:</b> ${escapeHtml(simpleFixHint(c.correct.diagnosisId))}</p>`;
+    }
+  });
+
+  // Small helper text generation
+  function simpleWhy(stepId){
+    const map = {
+      s2: "The filter condition prevented downstream steps from running.",
+      t1: "The trigger cannot see messages (likely due to membership/visibility).",
+      s3: "The API call failed with a 400 because required data was missing."
+    };
+    return map[stepId] || "This step caused the Zap to stop.";
+  }
+  function simpleFixHint(diagId){
+    const map = {
+      d1: "Adjust the filter (e.g. contains) or normalize text first.",
+      d2: "Check that the trigger is configured and firing.",
+      d3: "Ensure the bot/app has the correct permissions to post.",
+      d4: "Populate required fields before calling the API, or handle missing fields."
+    };
+    return map[diagId] || "Investigate and adjust the step.";
+  }
+
+  // =========================
+  // Reset & load case
+  // =========================
+  function resetCaseState(){
+    selectedStepId = null; submittedStepId = null; selectedDiagnosisId = null;
+    score = 0; stepLocked = false; diagnosisLocked = false;
+    updateScore();
+  }
+
+  function loadCase(index){
+    currentIndex = index;
+    renderLevelButtons();
+    resetCaseUI();
+    renderSteps();
+    renderBrief();
+  }
+
+  function resetCaseUI(){
+    selectedStepLabelEl.textContent = "None yet";
+    submitStepBtn.disabled = true;
+    submitStepHelp.textContent = "Click a step on the left, then submit it here.";
+    diagnosisArea.style.display = "none";
+    resultBox.style.display = "none";
+    resultBox.innerHTML = "";
+    tabsEl.innerHTML = "";
+    evidenceEl.innerHTML = `<div class="small">Select a step to inspect evidence.</div>`;
+    evidenceHintEl.textContent = "Select a step to see evidence";
+    selectedStepId = null;
+    submittedStepId = null;
+    selectedDiagnosisId = null;
+    stepLocked = false;
+    diagnosisLocked = false;
+    // Note: keep score state across cases? currently resets per loadCase invocation.
+    score = 0;
+    updateScore();
+  }
+
+  resetBtn.addEventListener("click", () => {
+    resetCaseUI();
+    renderBrief();
+    renderSteps();
+  });
+
+  function renderBrief(){
+    const c = activeCase();
+    briefTextEl.innerHTML = `
+      <div style="font-weight:800;margin-bottom:6px;">Case hint</div>
+      <div class="small" style="margin-bottom:6px;"><b>Should happen:</b> ${escapeHtml(c.story.whatShouldHappen)}</div>
+      <div class="small" style="margin-bottom:10px;"><b>Actually happened:</b> ${escapeHtml(c.story.whatHappened)}</div>
+      <div class="small" style="color:var(--muted);">Start by inspecting steps on the left.</div>
+    `;
+  }
+
+  function renderLevelButtons(){ /* redefined below to avoid hoisting issues */ }
+
+  // small safety: initialize UI
+  function init(){
+    // build dynamic level buttons
+    levelButtonsEl.innerHTML = "";
+    CASES.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "levelBtn" + (i === currentIndex ? " active" : "");
+      b.textContent = c.title;
+      b.addEventListener("click", () => { if(i!==currentIndex) loadCase(i); });
+      levelButtonsEl.appendChild(b);
+    });
+    prevLevelBtn.disabled = currentIndex === 0;
+    nextLevelBtn.disabled = currentIndex === CASES.length - 1;
+
+    // render initial case
+    renderBrief();
+    renderSteps();
+    updateScore();
+  }
+
+  // expose renderSteps and others after definitions (fix hoisting)
+  // Re-define renderLevelButtons properly now
+  function renderLevelButtons(){
+    levelButtonsEl.innerHTML = "";
+    CASES.forEach((c, i) => {
+      const b = document.createElement("button");
+      b.className = "levelBtn" + (i === currentIndex ? " active" : "");
+      b.textContent = c.title;
+      b.addEventListener("click", () => { if(i!==currentIndex) loadCase(i); });
+      levelButtonsEl.appendChild(b);
+    });
+    prevLevelBtn.disabled = currentIndex === 0;
+    nextLevelBtn.disabled = currentIndex === CASES.length - 1;
+  }
+
+  // Kick off
+  init();
+
+</script>
+</body>
+</html>
