@@ -1,4 +1,4 @@
-finBett<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,8 +12,10 @@ finBett<!DOCTYPE html>
             --zapier-border: #dbdbdb;
             --zapier-text: #2b2d2f;
             --space-bg: #0f172a;
-            --wood-warm: #5d4037;
-            --wood-light: #8d6e63;
+            --wood-warm: #3e2723;
+            --wood-light: #5d4037;
+            --neon-cyan: #00f2ff;
+            --neon-orange: #ffaa00;
         }
 
         body {
@@ -27,17 +29,132 @@ finBett<!DOCTYPE html>
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(255, 79, 0, 0.05) 0%, transparent 40%);
         }
 
         /* Cozy Spaceship Background */
         .stars {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(white, rgba(255,255,255,0.1) 1px, transparent 20px);
-            background-size: 70px 70px;
+            background: 
+                radial-gradient(1px 1px at 20px 30px, #fff, rgba(158, 41, 41, 0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 50px 160px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 160px 120px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
             z-index: -1;
-            opacity: 0.4;
-            animation: drift 100s linear infinite;
+            opacity: 0.5;
+            animation: drift 120s linear infinite;
+        }
+
+        /* Nebula Effect */
+        .nebula {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(103, 58, 183, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(0, 188, 212, 0.1) 0%, transparent 50%);
+            z-index: -2;
+            filter: blur(40px);
+        }
+
+        /* Planet in the distance */
+        .planet {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #2c3e50, #000);
+            border-radius: 50%;
+            top: -50px;
+            right: -50px;
+            z-index: -2;
+            box-shadow: inset -20px -20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(0, 242, 255, 0.1);
+        }
+
+        /* Floating Space Debris */
+        .debris {
+            position: fixed;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: -1;
+            animation: float-debris 20s linear infinite;
+        }
+
+        /* Asteroids */
+        .asteroid {
+            position: fixed;
+            background: #444;
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            z-index: -1;
+            pointer-events: none;
+            box-shadow: inset -5px -5px 10px #000;
+            animation: float-asteroid linear infinite;
+        }
+
+        /* Rockets with Zapier Logo */
+        .spaceship {
+            position: fixed;
+            width: 180px; /* Even bigger rocket */
+            height: 70px; /* Even bigger rocket */
+            background: #f4f6f8;
+            border-radius: 50% 80% 80% 50% / 50% 50% 50% 50%;
+            z-index: -1;
+            pointer-events: none;
+            box-shadow: 0 0 35px rgba(255, 79, 0, 0.5);
+            animation: fly-by linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #ddd;
+        }
+
+        .spaceship::before {
+            content: '_zapier'; /* Full text logo for maximum visibility */
+            color: var(--zapier-orange);
+            font-weight: 900;
+            font-size: 32px; /* Massive text size */
+            letter-spacing: -2px;
+            margin-top: -5px;
+            filter: drop-shadow(0 0 3px rgba(255, 79, 0, 0.3));
+        }
+
+        .spaceship::after {
+            content: '';
+            position: absolute;
+            left: -50px; /* Adjusted for massive size */
+            top: 15px;
+            width: 70px; /* Massive trail */
+            height: 40px;
+            background: linear-gradient(to right, transparent, var(--zapier-orange));
+            filter: blur(8px);
+            border-radius: 50%;
+            animation: flicker 0.1s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        @keyframes float-asteroid {
+            from { transform: translate(-100px, 100vh) rotate(0deg); }
+            to { transform: translate(110vw, -100px) rotate(360deg); }
+        }
+
+        @keyframes fly-by {
+            from { transform: translate(-200px, 20vh) rotate(0deg); }
+            to { transform: translate(110vw, 40vh) rotate(5deg); }
+        }
+
+        @keyframes float-debris {
+            from { transform: translateY(100vh) rotate(0deg); }
+            to { transform: translateY(-100px) rotate(360deg); }
         }
 
         @keyframes drift {
@@ -47,48 +164,78 @@ finBett<!DOCTYPE html>
 
         /* The Ship Terminal / Cafe Counter */
         #terminal-container {
-            width: 950px;
-            height: 750px;
+            width: 980px;
+            height: 780px;
             background: var(--wood-warm);
-            border: 12px solid #3e2723;
-            border-radius: 40px;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.5);
+            border: 15px solid #2b1d1a;
+            border-radius: 50px;
+            box-shadow: 
+                0 0 100px rgba(0,0,0,0.9), 
+                inset 0 0 60px rgba(0,0,0,0.7),
+                0 0 30px var(--neon-cyan),
+                0 0 10px var(--neon-cyan);
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
         }
 
-        /* Wood Grain Effect */
+        /* Holographic Scanline Effect */
+        .hologram-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 242, 255, 0.05) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 20;
+            pointer-events: none;
+            animation: scanline 10s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes scanline {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        /* Wood Grain + Tech Overlay */
         #terminal-container::before {
             content: "";
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.05) 40px, rgba(0,0,0,0.05) 80px);
+            background: 
+                repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.05) 40px, rgba(0,0,0,0.05) 80px),
+                linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 20px 20px, 20px 20px;
             pointer-events: none;
         }
 
         .terminal-screen {
             flex: 1;
-            margin: 30px;
+            margin: 40px;
             background: #fff;
-            border-radius: 15px;
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
-            overflow-y: auto; /* Enable vertical scrolling */
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
-            border: 4px solid #3e2723;
+            overflow-y: auto;
+            box-shadow: 
+                inset 0 0 20px rgba(0,0,0,0.3),
+                0 0 15px rgba(0, 242, 255, 0.2);
+            border: 6px solid #2b1d1a;
             position: relative;
         }
 
         .zap-header {
-            padding: 15px 25px;
-            border-bottom: 1px solid var(--zapier-border);
+            padding: 20px 30px;
+            border-bottom: 2px solid var(--zapier-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             background: #fff;
-            position: sticky; /* Keep header visible while scrolling */
+            position: sticky;
             top: 0;
             z-index: 10;
         }
@@ -96,114 +243,128 @@ finBett<!DOCTYPE html>
         .zap-logo {
             color: var(--zapier-orange);
             font-weight: 900;
-            font-size: 22px;
+            font-size: 24px;
             letter-spacing: -1px;
+            text-shadow: 0 0 10px rgba(255, 79, 0, 0.1);
         }
 
         /* EQUIDISTANT HEADER LOGIC */
         .context-bar {
             background: var(--zapier-light-blue);
-            padding: 20px 0;
-            border-bottom: 1px solid var(--zapier-border);
+            padding: 25px 0;
+            border-bottom: 2px solid var(--zapier-border);
             display: flex;
             align-items: center;
-            justify-content: center; /* Center everything */
-            position: sticky; /* Keep context bar visible while scrolling */
-            top: 53px; /* Approximate height of zap-header */
+            justify-content: center;
+            position: sticky;
+            top: 66px;
             z-index: 9;
         }
 
         .context-step {
-            width: 250px; /* Fixed width for symmetry */
+            width: 280px;
             text-align: center;
+            background: rgba(255,255,255,0.5);
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 118, 150, 0.1);
         }
 
         .arrow-divider {
-            margin: 0 40px;
-            color: #ccc;
-            font-size: 24px;
+            margin: 0 50px;
+            color: var(--zapier-blue);
+            font-size: 28px;
+            filter: drop-shadow(0 0 5px rgba(0, 118, 150, 0.3));
         }
 
         .step-label {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             color: var(--zapier-blue);
             font-weight: 800;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             display: block;
         }
 
         .step-title {
             font-weight: 700;
-            font-size: 16px;
+            font-size: 17px;
+            color: #1a1a1a;
         }
 
         /* Workspace */
         .workspace {
             flex: 1;
-            padding: 40px;
+            padding: 50px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: repeating-linear-gradient(
-                90deg,
-                #ffffff,
-                #ffffff 40px,
-                #f4f6f8 40px,
-                #f4f6f8 80px
-            );
+            background: 
+                repeating-linear-gradient(90deg, #ffffff, #ffffff 40px, #f4f6f8 40px, #f4f6f8 80px);
         }
 
         .coffee-icon {
-            font-size: 40px;
-            margin-bottom: 10px;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            font-size: 50px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         .goal-text {
             text-align: center;
-            max-width: 600px;
-            margin-bottom: 30px;
-            font-size: 18px;
-            line-height: 1.6;
-            color: #444;
+            max-width: 650px;
+            margin-bottom: 40px;
+            font-size: 20px;
+            line-height: 1.7;
+            color: #333;
             font-style: italic;
+            background: rgba(255,255,255,0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid var(--zapier-orange);
         }
 
         .field-card {
             width: 100%;
-            max-width: 700px;
+            max-width: 750px;
             border: 1px solid var(--zapier-border);
-            border-radius: 12px;
-            padding: 30px;
+            border-radius: 15px;
+            padding: 40px;
             background: #fff;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             position: relative;
-            margin-bottom: 40px; /* Space at bottom for scrolling */
+            margin-bottom: 60px;
         }
 
         .field-label {
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 20px;
+            font-weight: 800;
+            font-size: 15px;
+            margin-bottom: 25px;
             display: block;
             color: var(--zapier-orange);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Choice Mechanic */
         .choice-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 25px;
+            gap: 30px;
         }
 
         .choice-btn {
             border: 2px solid #f0f0f0;
-            border-radius: 12px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 30px;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             background: #fff;
             display: flex;
             flex-direction: column;
@@ -215,36 +376,38 @@ finBett<!DOCTYPE html>
         .choice-btn:hover {
             border-color: var(--zapier-orange);
             background: #fff9f6;
-            transform: translateY(-4px);
-            box-shadow: 0 8px 15px rgba(255, 79, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px rgba(255, 79, 0, 0.15);
         }
 
         .choice-btn.selected {
             border-color: var(--zapier-orange);
             background: #fff9f6;
-            box-shadow: 0 8px 20px rgba(255, 79, 0, 0.2);
+            box-shadow: 0 12px 30px rgba(255, 79, 0, 0.25);
+            transform: scale(1.02);
         }
 
         .pill {
             background: var(--zapier-light-blue);
             border: 1px solid #b3e5f5;
             color: var(--zapier-blue);
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 14px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
             display: inline-block;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         .static-preview {
             border: 1px solid #ccc;
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             background: #fff;
-            font-size: 14px;
+            font-size: 15px;
             color: #333;
-            font-family: monospace;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
         }
 
         /* Feedback Overlay */
@@ -252,13 +415,13 @@ finBett<!DOCTYPE html>
             display: none;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(62, 39, 35, 0.98);
+            background: rgba(15, 23, 42, 0.98);
             z-index: 100;
             color: white;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 40px;
+            padding: 50px;
             text-align: center;
         }
 
@@ -266,41 +429,49 @@ finBett<!DOCTYPE html>
             background: var(--zapier-orange);
             color: white;
             border: none;
-            padding: 16px 35px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 18px;
+            padding: 20px 45px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 20px;
             cursor: pointer;
-            margin-top: 30px;
-            transition: transform 0.2s;
+            margin-top: 40px;
+            transition: all 0.2s;
+            box-shadow: 0 5px 15px rgba(255, 79, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .btn-main:hover {
-            transform: scale(1.05);
+            transform: scale(1.05) translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 79, 0, 0.4);
         }
 
         /* Steam Animation for Coffee */
         .steam {
             position: absolute;
-            top: -20px;
-            font-size: 20px;
+            top: -25px;
+            font-size: 24px;
             opacity: 0;
             animation: rise 3s infinite;
+            color: rgba(255,255,255,0.6);
         }
 
         @keyframes rise {
             0% { transform: translateY(0) scale(1); opacity: 0; }
-            50% { opacity: 0.5; }
-            100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: translateY(-50px) scale(1.8); opacity: 0; }
         }
 
         .bolt {
             position: absolute;
-            width: 18px;
-            height: 18px;
-            background: #263238;
+            width: 22px;
+            height: 22px;
+            background: #1a1a1a;
             border-radius: 50%;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.1);
+            box-shadow: 
+                inset 0 3px 6px rgba(0,0,0,0.8), 
+                0 1px 1px rgba(255,255,255,0.1),
+                0 0 5px var(--neon-cyan);
         }
 
         .hidden {
@@ -311,8 +482,12 @@ finBett<!DOCTYPE html>
 <body>
 
     <div class="stars"></div>
+    <div class="nebula"></div>
+    <div class="planet"></div>
+    <div id="debris-container"></div>
 
     <div id="terminal-container">
+        <div class="hologram-overlay"></div>
         <!-- Bolts -->
         <div class="bolt" style="top:20px; left:20px;"></div>
         <div class="bolt" style="top:20px; right:20px;"></div>
@@ -336,7 +511,7 @@ finBett<!DOCTYPE html>
             <div id="game-content" class="hidden" style="display: flex; flex-direction: column; flex: 1;">
                 <div class="zap-header">
                     <div class="zap-logo">_zapier</div>
-                    <div style="font-size: 13px; font-weight: 600; color: #888;" id="progress-text">Order 1 of 3</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #888;" id="progress-text">Order 1 of 5</div>
                 </div>
 
                 <div class="context-bar">
@@ -400,6 +575,42 @@ finBett<!DOCTYPE html>
     </div>
 
     <script>
+        // Generate floating debris
+        const debrisContainer = document.getElementById('debris-container');
+        for (let i = 0; i < 15; i++) {
+            const d = document.createElement('div');
+            d.className = 'debris';
+            d.style.left = Math.random() * 100 + 'vw';
+            d.style.width = Math.random() * 4 + 'px';
+            d.style.height = d.style.width;
+            d.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            d.style.animationDelay = (Math.random() * 20) + 's';
+            debrisContainer.appendChild(d);
+        }
+
+        // Generate Asteroids
+        for (let i = 0; i < 5; i++) {
+            const a = document.createElement('div');
+            a.className = 'asteroid';
+            a.style.left = Math.random() * 100 + 'vw';
+            const size = Math.random() * 40 + 20;
+            a.style.width = size + 'px';
+            a.style.height = size + 'px';
+            a.style.animationDuration = (Math.random() * 20 + 20) + 's';
+            a.style.animationDelay = (Math.random() * 30) + 's';
+            debrisContainer.appendChild(a);
+        }
+
+        // Generate occasional Spaceships
+        for (let i = 0; i < 3; i++) {
+            const s = document.createElement('div');
+            s.className = 'spaceship';
+            s.style.top = (Math.random() * 80) + 'vh';
+            s.style.animationDuration = (Math.random() * 5 + 8) + 's';
+            s.style.animationDelay = (Math.random() * 40) + 's';
+            debrisContainer.appendChild(s);
+        }
+
         function startGame() {
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-content').classList.remove('hidden');
@@ -437,6 +648,26 @@ finBett<!DOCTYPE html>
                 dynamicVal: "📋 Order Number",
                 correct: "dynamic",
                 why: "<b>Systems Nominal!</b> You want the title to be unique to each order. By using <b>Dynamic Mapping</b>, the 'Order Number' changes for every run. A Static value would make every event look identical!"
+            },
+            {
+                trigger: "Ship Sensor Alert",
+                action: "Post to Slack Channel",
+                goal: "When the ship's hull temperature fluctuates, we need to post an alert to the <b>#engineering-bay</b> channel so the crew can check it.",
+                field: "Channel Name",
+                staticVal: "#engineering-bay",
+                dynamicVal: "📋 Current Temperature",
+                correct: "static",
+                why: "<b>Steamy Logic!</b> You want all alerts to go to the <b>#engineering-bay</b>. If you mapped the 'Current Temperature' dynamically, the Zap would try to find a channel named '450 Degrees' and fail! Use Static for fixed destinations."
+            },
+            {
+                trigger: "New Crew Member Onboarded",
+                action: "Update Ship Directory",
+                goal: "A new crew member just joined the ship! We need to add their <b>specific Crew ID</b> to the digital directory.",
+                field: "Directory Entry ID",
+                staticVal: "NEW_CREW_MEMBER",
+                dynamicVal: "📋 Crew ID Number",
+                correct: "dynamic",
+                why: "<b>Top Tier Roast!</b> Every crew member has a unique ID. By using <b>Dynamic Mapping</b>, the 'Crew ID Number' updates correctly for every person. If you used a Static value, you'd just be overwriting the same entry over and over!"
             }
         ];
 
@@ -491,7 +722,7 @@ finBett<!DOCTYPE html>
                             <div class="coffee-icon" style="font-size: 80px;">🏆</div>
                         </div>
                         <h1 style="color: var(--zapier-orange); font-size: 36px; margin-bottom: 10px; font-weight: 900;">CERTIFIED BARISTA ZAP FIXER!</h1>
-                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">Perfect score! You've mastered the logic of Static vs Dynamic mapping.</p>
+                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">Perfect score! You've mastered the logic of Static vs Dynamic mapping across the galaxy.</p>
                         <button class="btn-main" style="padding: 20px 60px; font-size: 24px;" onclick="location.reload()">CELEBRATE & RESTART</button>
                     `;
                 } else {
@@ -500,7 +731,7 @@ finBett<!DOCTYPE html>
                             <div class="coffee-icon" style="font-size: 80px;">☕</div>
                         </div>
                         <h1 style="color: #ff8a65; font-size: 36px; margin-bottom: 10px; font-weight: 900;">Not Quite Certified...</h1>
-                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">You got <b>${score} out of ${levels.length}</b> correct. A true Barista needs a perfect score!</p>
+                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">You got <b>${score} out of ${levels.length}</b> correct. A true Barista needs a perfect 5/5!</p>
                         <button class="btn-main" style="padding: 20px 60px; font-size: 24px;" onclick="location.reload()">TRY AGAIN</button>
                     `;
                 }
