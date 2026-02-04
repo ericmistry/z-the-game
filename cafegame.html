@@ -1,0 +1,528 @@
+finBett<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Repair Cafe: Static vs Dynamic</title>
+    <style>
+        :root {
+            --zapier-orange: #ff4f00;
+            --zapier-blue: #007696;
+            --zapier-light-blue: #eefbff;
+            --zapier-border: #dbdbdb;
+            --zapier-text: #2b2d2f;
+            --space-bg: #0f172a;
+            --wood-warm: #5d4037;
+            --wood-light: #8d6e63;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Degular", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--space-bg);
+            color: var(--zapier-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Cozy Spaceship Background */
+        .stars {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(white, rgba(255,255,255,0.1) 1px, transparent 20px);
+            background-size: 70px 70px;
+            z-index: -1;
+            opacity: 0.4;
+            animation: drift 100s linear infinite;
+        }
+
+        @keyframes drift {
+            from { background-position: 0 0; }
+            to { background-position: 1000px 1000px; }
+        }
+
+        /* The Ship Terminal / Cafe Counter */
+        #terminal-container {
+            width: 950px;
+            height: 750px;
+            background: var(--wood-warm);
+            border: 12px solid #3e2723;
+            border-radius: 40px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8), inset 0 0 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Wood Grain Effect */
+        #terminal-container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.05) 40px, rgba(0,0,0,0.05) 80px);
+            pointer-events: none;
+        }
+
+        .terminal-screen {
+            flex: 1;
+            margin: 30px;
+            background: #fff;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Enable vertical scrolling */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+            border: 4px solid #3e2723;
+            position: relative;
+        }
+
+        .zap-header {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--zapier-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            position: sticky; /* Keep header visible while scrolling */
+            top: 0;
+            z-index: 10;
+        }
+
+        .zap-logo {
+            color: var(--zapier-orange);
+            font-weight: 900;
+            font-size: 22px;
+            letter-spacing: -1px;
+        }
+
+        /* EQUIDISTANT HEADER LOGIC */
+        .context-bar {
+            background: var(--zapier-light-blue);
+            padding: 20px 0;
+            border-bottom: 1px solid var(--zapier-border);
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Center everything */
+            position: sticky; /* Keep context bar visible while scrolling */
+            top: 53px; /* Approximate height of zap-header */
+            z-index: 9;
+        }
+
+        .context-step {
+            width: 250px; /* Fixed width for symmetry */
+            text-align: center;
+        }
+
+        .arrow-divider {
+            margin: 0 40px;
+            color: #ccc;
+            font-size: 24px;
+        }
+
+        .step-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--zapier-blue);
+            font-weight: 800;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .step-title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Workspace */
+        .workspace {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: repeating-linear-gradient(
+                90deg,
+                #ffffff,
+                #ffffff 40px,
+                #f4f6f8 40px,
+                #f4f6f8 80px
+            );
+        }
+
+        .coffee-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .goal-text {
+            text-align: center;
+            max-width: 600px;
+            margin-bottom: 30px;
+            font-size: 18px;
+            line-height: 1.6;
+            color: #444;
+            font-style: italic;
+        }
+
+        .field-card {
+            width: 100%;
+            max-width: 700px;
+            border: 1px solid var(--zapier-border);
+            border-radius: 12px;
+            padding: 30px;
+            background: #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            position: relative;
+            margin-bottom: 40px; /* Space at bottom for scrolling */
+        }
+
+        .field-label {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: block;
+            color: var(--zapier-orange);
+        }
+
+        /* Choice Mechanic */
+        .choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .choice-btn {
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 25px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .choice-btn:hover {
+            border-color: var(--zapier-orange);
+            background: #fff9f6;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 15px rgba(255, 79, 0, 0.1);
+        }
+
+        .choice-btn.selected {
+            border-color: var(--zapier-orange);
+            background: #fff9f6;
+            box-shadow: 0 8px 20px rgba(255, 79, 0, 0.2);
+        }
+
+        .pill {
+            background: var(--zapier-light-blue);
+            border: 1px solid #b3e5f5;
+            color: var(--zapier-blue);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .static-preview {
+            border: 1px solid #ccc;
+            padding: 8px 16px;
+            border-radius: 6px;
+            background: #fff;
+            font-size: 14px;
+            color: #333;
+            font-family: monospace;
+        }
+
+        /* Feedback Overlay */
+        #overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(62, 39, 35, 0.98);
+            z-index: 100;
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .btn-main {
+            background: var(--zapier-orange);
+            color: white;
+            border: none;
+            padding: 16px 35px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: transform 0.2s;
+        }
+
+        .btn-main:hover {
+            transform: scale(1.05);
+        }
+
+        /* Steam Animation for Coffee */
+        .steam {
+            position: absolute;
+            top: -20px;
+            font-size: 20px;
+            opacity: 0;
+            animation: rise 3s infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 0; }
+            50% { opacity: 0.5; }
+            100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+        }
+
+        .bolt {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: #263238;
+            border-radius: 50%;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.8), 0 1px 1px rgba(255,255,255,0.1);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stars"></div>
+
+    <div id="terminal-container">
+        <!-- Bolts -->
+        <div class="bolt" style="top:20px; left:20px;"></div>
+        <div class="bolt" style="top:20px; right:20px;"></div>
+        <div class="bolt" style="bottom:20px; left:20px;"></div>
+        <div class="bolt" style="bottom:20px; right:20px;"></div>
+
+        <div class="terminal-screen">
+            <!-- Home Screen -->
+            <div id="home-screen" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; background: repeating-linear-gradient(90deg, #ffffff, #ffffff 40px, #f4f6f8 40px, #f4f6f8 80px);">
+                <div style="position: relative; margin-bottom: 20px;">
+                    <div class="coffee-icon" style="font-size: 80px;">☕</div>
+                    <div class="steam" style="left: 10px; font-size: 30px; animation-delay: 0s;">~</div>
+                    <div class="steam" style="left: 30px; font-size: 30px; animation-delay: 1s;">~</div>
+                </div>
+                <h1 style="color: var(--zapier-orange); font-size: 36px; margin-bottom: 10px; font-weight: 900;">Welcome to the Zap Repair Cafe!</h1>
+                <p style="font-size: 18px; color: #555; margin-bottom: 30px;">Click <b>BREW</b> to start fixing Zaps</p>
+                <button class="btn-main" style="padding: 20px 60px; font-size: 24px;" onclick="startGame()">BREW!</button>
+            </div>
+
+            <!-- Game Content (Hidden by default) -->
+            <div id="game-content" class="hidden" style="display: flex; flex-direction: column; flex: 1;">
+                <div class="zap-header">
+                    <div class="zap-logo">_zapier</div>
+                    <div style="font-size: 13px; font-weight: 600; color: #888;" id="progress-text">Order 1 of 3</div>
+                </div>
+
+                <div class="context-bar">
+                    <div class="context-step">
+                        <span class="step-label">Trigger</span>
+                        <div class="step-title" id="trigger-title">New Email Received</div>
+                    </div>
+                    
+                    <div class="arrow-divider">➔</div>
+                    
+                    <div class="context-step">
+                        <span class="step-label">Action</span>
+                        <div class="step-title" id="action-title">Upload File to Storage</div>
+                    </div>
+                </div>
+
+                <div class="workspace">
+                    <div style="position: relative;">
+                        <div class="coffee-icon">☕</div>
+                        <div class="steam" style="left: 5px; animation-delay: 0s;">~</div>
+                        <div class="steam" style="left: 15px; animation-delay: 1s;">~</div>
+                    </div>
+                    
+                    <p class="goal-text" id="goal-text">
+                        "Welcome to the Repair Cafe! To keep the ship organized, we need to save <b>every attachment</b> into a specific folder called <b>'Invoices'</b>."
+                    </p>
+
+                    <div class="field-card">
+                        <span class="field-label" id="field-label">Zapier Field: Folder Name</span>
+                        
+                        <div class="choice-grid">
+                            <!-- STATIC CHOICE -->
+                            <div class="choice-btn" onclick="selectChoice('static')">
+                                <span style="font-size: 12px; color: #888; margin-bottom: 12px; font-weight: 600;">Option A: Static Value</span>
+                                <div class="static-preview" id="static-val">Invoices</div>
+                                <p style="font-size: 12px; margin-top: 15px; color: #666; line-height: 1.4;">Select a fixed folder. It stays the same for every single run.</p>
+                            </div>
+
+                            <!-- DYNAMIC CHOICE -->
+                            <div class="choice-btn" onclick="selectChoice('dynamic')">
+                                <span style="font-size: 12px; color: #888; margin-bottom: 12px; font-weight: 600;">Option B: Dynamic Mapping</span>
+                                <div class="pill" id="dynamic-val">📋 Subject Line</div>
+                                <p style="font-size: 12px; margin-top: 15px; color: #666; line-height: 1.4;">Map a field from Step 1. It changes based on the email data.</p>
+                            </div>
+                        </div>
+
+                        <div style="text-align:center; margin-top:35px;">
+                            <button class="btn-main" onclick="confirmChoice()">Serve Logic</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Overlay -->
+            <div id="overlay">
+                <h1 id="feedback-title" style="font-size: 48px; margin-bottom: 20px;"></h1>
+                <p id="feedback-desc" style="font-size: 20px; max-width: 650px; line-height: 1.6;"></p>
+                <button class="btn-main" onclick="nextLevel()">Next Order</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startGame() {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('game-content').classList.remove('hidden');
+            score = 0; // Reset score on start
+            currentLevel = 0; // Reset level on start
+        }
+
+        const levels = [
+            {
+                trigger: "New Email Received",
+                action: "Upload File to Storage",
+                goal: "To keep the ship organized, we need to save <b>every attachment</b> into a specific folder called <b>'Invoices'</b>.",
+                field: "Folder Name",
+                staticVal: "Invoices",
+                dynamicVal: "📋 Subject Line",
+                correct: "static",
+                why: "<b>Perfectly Brewed!</b> Since you want <i>every</i> file to go to the exact same place, you use a <b>Static Value</b>. If you mapped the 'Subject Line' dynamically, your files would be scattered into hundreds of different folders!"
+            },
+            {
+                trigger: "New Form Submission",
+                action: "Send Direct Message",
+                goal: "A customer just ordered a space-latte! We need to send a confirmation message to the <b>person who filled out the form</b>.",
+                field: "Recipient Address",
+                staticVal: "cafe@spaceship.com",
+                dynamicVal: "📋 Submitter Email",
+                correct: "dynamic",
+                why: "<b>Freshly Roasted!</b> You need <b>Dynamic Mapping</b>. If you used a Static value like 'cafe@spaceship.com', you'd just be sending confirmation emails to the shop! Mapping the 'Submitter Email' ensures the customer gets their receipt."
+            },
+            {
+                trigger: "New Order Detected",
+                action: "Create Calendar Event",
+                goal: "For every new repair order, create a reminder. The event title must be the <b>Order Number</b> so we can track the specific droid.",
+                field: "Event Title",
+                staticVal: "New Repair Order",
+                dynamicVal: "📋 Order Number",
+                correct: "dynamic",
+                why: "<b>Systems Nominal!</b> You want the title to be unique to each order. By using <b>Dynamic Mapping</b>, the 'Order Number' changes for every run. A Static value would make every event look identical!"
+            }
+        ];
+
+        let currentLevel = 0;
+        let selected = null;
+        let score = 0;
+
+        function selectChoice(type) {
+            selected = type;
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+            const btns = document.querySelectorAll('.choice-btn');
+            if (type === 'static') btns[0].classList.add('selected');
+            else btns[1].classList.add('selected');
+        }
+
+        function confirmChoice() {
+            if (!selected) return alert("Please select a logic path!");
+            
+            const level = levels[currentLevel];
+            const isCorrect = selected === level.correct;
+            
+            if (isCorrect) score++; // Track correct answers
+            
+            const overlay = document.getElementById('overlay');
+            const title = document.getElementById('feedback-title');
+            const desc = document.getElementById('feedback-desc');
+
+            overlay.style.display = 'flex';
+            if (isCorrect) {
+                title.innerText = "COFFEE'S READY! ☕";
+                title.style.color = "#ffccbc";
+                desc.innerHTML = level.why;
+            } else {
+                title.innerText = "SPILLED THE BEANS... ❌";
+                title.style.color = "#ff8a65";
+                desc.innerHTML = "<b>Think about the outcome:</b> If you choose that path, the data won't behave how you want. " + (selected === 'static' ? "A static value stays the same every time." : "A dynamic value changes with every run.");
+            }
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            if (currentLevel >= levels.length) {
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('game-content').classList.add('hidden');
+                
+                const homeScreen = document.getElementById('home-screen');
+                homeScreen.classList.remove('hidden');
+                
+                if (score === levels.length) {
+                    homeScreen.innerHTML = `
+                        <div style="position: relative; margin-bottom: 20px;">
+                            <div class="coffee-icon" style="font-size: 80px;">🏆</div>
+                        </div>
+                        <h1 style="color: var(--zapier-orange); font-size: 36px; margin-bottom: 10px; font-weight: 900;">CERTIFIED BARISTA ZAP FIXER!</h1>
+                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">Perfect score! You've mastered the logic of Static vs Dynamic mapping.</p>
+                        <button class="btn-main" style="padding: 20px 60px; font-size: 24px;" onclick="location.reload()">CELEBRATE & RESTART</button>
+                    `;
+                } else {
+                    homeScreen.innerHTML = `
+                        <div style="position: relative; margin-bottom: 20px;">
+                            <div class="coffee-icon" style="font-size: 80px;">☕</div>
+                        </div>
+                        <h1 style="color: #ff8a65; font-size: 36px; margin-bottom: 10px; font-weight: 900;">Not Quite Certified...</h1>
+                        <p style="font-size: 18px; color: #555; margin-bottom: 30px;">You got <b>${score} out of ${levels.length}</b> correct. A true Barista needs a perfect score!</p>
+                        <button class="btn-main" style="padding: 20px 60px; font-size: 24px;" onclick="location.reload()">TRY AGAIN</button>
+                    `;
+                }
+                return;
+            }
+
+            document.getElementById('overlay').style.display = 'none';
+            selected = null;
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+
+            const level = levels[currentLevel];
+            document.getElementById('trigger-title').innerText = level.trigger;
+            document.getElementById('action-title').innerText = level.action;
+            document.getElementById('goal-text').innerHTML = level.goal;
+            document.getElementById('field-label').innerText = "Zapier Field: " + level.field;
+            document.getElementById('static-val').innerText = level.staticVal;
+            document.getElementById('dynamic-val').innerText = level.dynamicVal;
+            document.getElementById('progress-text').innerText = `Order ${currentLevel + 1} of ${levels.length}`;
+            
+            // Scroll back to top for next level
+            document.querySelector('.terminal-screen').scrollTop = 0;
+        }
+    </script>
+</body>
+</html>

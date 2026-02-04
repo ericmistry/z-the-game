@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic HTTP Academy - Space Error Code Adventure</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #0a0a15;
+            font-family: 'Courier New', monospace;
+        }
+
+        #game-container {
+            border: 2px solid #333;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="game-container"></div>
+
+    <script>
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'GameScene' });
+
+                // Level 1: Easy questions with obvious wrong answers
+                this.level1Questions = [
+                    {
+                        code: '404',
+                        question: 'Captain! A 404 appeared on our scanner!',
+                        leftAnswer: 'Not Found (the space donut shop)',
+                        rightAnswer: 'Server Hiccup',
+                        correct: 'left',
+                        whimsy: 'Those space donuts are always hiding!'
+                    },
+                    {
+                        code: '200',
+                        question: 'Woohoo! The space station sent us a 200!',
+                        leftAnswer: 'Bad Gateway',
+                        rightAnswer: 'OK (All systems go!)',
+                        correct: 'right',
+                        whimsy: 'Green light means go zoom zoom!'
+                    },
+                    {
+                        code: '500',
+                        question: 'Uh oh! The mothership is throwing a 500...',
+                        leftAnswer: 'Internal Server Error',
+                        rightAnswer: 'Not Found',
+                        correct: 'left',
+                        whimsy: 'Even space computers have bad hair days!'
+                    },
+                    {
+                        code: '401',
+                        question: 'The space police sent us a 401!',
+                        leftAnswer: 'Bad Request',
+                        rightAnswer: 'Unauthorized (Show your space license!)',
+                        correct: 'right',
+                        whimsy: 'Did you forget your cosmic ID again?'
+                    },
+                    {
+                        code: '403',
+                        question: 'The fancy space club gave us a 403...',
+                        leftAnswer: 'Forbidden (Members only, peasant!)',
+                        rightAnswer: 'Timeout',
+                        correct: 'left',
+                        whimsy: 'Sorry, no flip-flops in the VIP nebula!'
+                    }
+                ];
+
+                // Level 2: Trickier questions with similar answers
+                this.level2Questions = [
+                    {
+                        code: '429',
+                        question: 'The cosmic API is overwhelmed!',
+                        leftAnswer: 'Too Many Requests (Slow down, speed demon!)',
+                        rightAnswer: 'Rate Limited (Chill out, turbo!)',
+                        correct: 'left',
+                        whimsy: 'Even robots need coffee breaks!'
+                    },
+                    {
+                        code: '503',
+                        question: 'Houston, we have a 503...',
+                        leftAnswer: 'Server Unavailable',
+                        rightAnswer: 'Service Unavailable (Gone fishing)',
+                        correct: 'right',
+                        whimsy: 'The server went on a space vacation!'
+                    },
+                    {
+                        code: '502',
+                        question: 'The space gateway is acting funky!',
+                        leftAnswer: 'Bad Gateway (Wonky space bridge)',
+                        rightAnswer: 'Gateway Error',
+                        correct: 'left',
+                        whimsy: 'Someone put the space bridge upside down!'
+                    },
+                    {
+                        code: '400',
+                        question: 'Our message confused the space computer!',
+                        leftAnswer: 'Bad Request (Cosmic gibberish)',
+                        rightAnswer: 'Invalid Request',
+                        correct: 'left',
+                        whimsy: 'Did you try speaking robot?'
+                    },
+                    {
+                        code: '408',
+                        question: 'The space station took too long to reply!',
+                        leftAnswer: 'Connection Timeout',
+                        rightAnswer: 'Request Timeout (They fell asleep)',
+                        correct: 'right',
+                        whimsy: 'Maybe they were taking a power nap!'
+                    }
+                ];
+
+                // Level 3: Expert level with very tricky similar answers
+                this.level3Questions = [
+                    {
+                        code: '301',
+                        question: 'The space address changed permanently!',
+                        leftAnswer: 'Moved Permanently (New cosmic address)',
+                        rightAnswer: 'Permanent Redirect',
+                        correct: 'left',
+                        whimsy: 'They moved to a better solar system!'
+                    },
+                    {
+                        code: '302',
+                        question: 'Temporary space detour ahead!',
+                        leftAnswer: 'Temporary Redirect',
+                        rightAnswer: 'Found (Temp. moved, come back later)',
+                        correct: 'right',
+                        whimsy: 'Just a quick pit stop at the space mall!'
+                    },
+                    {
+                        code: '422',
+                        question: 'The space form has cosmic errors!',
+                        leftAnswer: 'Unprocessable Entity (Form is wonky)',
+                        rightAnswer: 'Invalid Entity',
+                        correct: 'left',
+                        whimsy: 'Did you fill out your interdimensional address?'
+                    },
+                    {
+                        code: '418',
+                        question: 'The most legendary space error!',
+                        leftAnswer: 'Invalid Teapot',
+                        rightAnswer: "I'm a teapot (No coffee for you!)",
+                        correct: 'right',
+                        whimsy: 'The cosmic joke of the internet!'
+                    },
+                    {
+                        code: '504',
+                        question: 'The space gateway timed out!',
+                        leftAnswer: 'Gateway Timeout (Space traffic jam)',
+                        rightAnswer: 'Gateway Error',
+                        correct: 'left',
+                        whimsy: 'Even light speed has rush hour!'
+                    }
+                ];
+
+                this.currentLevel = 1;
+                this.currentQuestion = 0;
+                this.shipX = 400; // Start in center horizontally
+                this.shipY = 500; // Start near bottom
+                this.crashed = false;
+                this.questionsPerLevel = 5;
+                this.waitingForStart = false;
+                this.asteroids = [];
+                this.gameSpeed = 2;
+                this.navigating = false;
+                this.targetX = null;
+                this.onboardingStep = 0;
+                this.successAnimation = false;
+                this.animationPhase = 'slide';
+            }
+
+            preload() {
+                // No external assets needed - we'll draw everything
+            }
+
+            create() {
+                // Create starfield background
+                this.createStarField();
+
+                // Create the horizontal track
+                this.createTrack();
+
+                // Create spaceship
+                this.createSpaceship();
+
+                // Create UI elements
+                this.createUI();
+
+                // Setup input
+                this.cursors = this.input.keyboard.createCursorKeys();
+
+                // Show welcome message first
+                this.showWelcome();
+            }
+
+            showWelcome() {
+                // Show only necessary UI for welcome screen
+                this.levelText.setVisible(true);
+                this.errorCodeText.setVisible(true);
+                this.questionText.setVisible(true);
+                this.leftAnswerText.setVisible(false);
+                this.rightAnswerText.setVisible(false);
+                this.instructionText.setVisible(true);
+                this.progressText.setVisible(true);
+                this.whimsyText.setVisible(true);
+                this.referenceText.setVisible(true);
+                this.crashMessageText.setVisible(false);
+
+                // Reset positioning for welcome screen
+                this.levelText.setPosition(400, 20);
+                this.levelText.setFontSize(18);
+                this.errorCodeText.setPosition(400, 60);
+                this.questionText.setPosition(400, 120);
+                this.questionText.setFontSize(16);
+                this.questionText.setWordWrapWidth(600);
+
+                this.levelText.setText('🌌 WELCOME TO COSMIC HTTP ACADEMY! 🌌');
+                this.errorCodeText.setText('🚀 SPACE PILOT TRAINING 🚀');
+                this.questionText.setText('Greetings, brave space cadet! Before we begin, let\'s learn about HTTP status codes - the language of the cosmic web!');
+                this.instructionText.setText('⭐ Press any arrow to start your training! ⭐');
+                this.whimsyText.setText('Knowledge is power in the vast expanse of cyberspace! 🌟');
+                this.progressText.setText('Training Phase');
+                this.crashMessageText.setText('');
+                this.referenceText.setText('🚀 Get ready to master the language of the web! 🚀');
+
+                // Reset navigation state
+                this.navigating = false;
+                this.crashed = false;
+                this.targetX = null;
+                this.asteroids.forEach(asteroid => asteroid.destroy());
+                this.asteroids = [];
+
+                // Start onboarding
+                this.onboardingStep = 0;
+                this.waitingForStart = true;
+            }
+
+            showOnboarding() {
+                // Hide all other UI elements during onboarding for clean presentation
+                this.errorCodeText.setVisible(false);
+                this.leftAnswerText.setVisible(false);
+                this.rightAnswerText.setVisible(false);
+                this.crashMessageText.setVisible(false);
+                this.whimsyText.setVisible(false);
+                this.referenceText.setVisible(false);
+
+                // Clear and reposition for onboarding
+                this.levelText.setVisible(true);
+                this.questionText.setVisible(true);
+                this.instructionText.setVisible(true);
+                this.progressText.setVisible(true);
+
+                // Set onboarding content with proper spacing
+                this.levelText.setText('🌟 COSMIC HTTP STATUS CODES ACADEMY 🌟');
+                this.levelText.setPosition(400, 80);
+                this.levelText.setFontSize(20);
+
+                this.progressText.setText('🎓 PILOT TRAINING MANUAL 🎓');
+                this.progressText.setPosition(400, 110);
+                this.progressText.setFontSize(16);
+
+                // Main educational content - positioned clearly in center
+                const onboardingText = `HTTP Status Codes are cosmic messages between spaceships and servers!
+
+🟢 2xx SUCCESS (200 OK) - All systems green!
+🟡 3xx REDIRECT (301 Moved) - New coordinates received!  
+🔴 4xx CLIENT ERROR (404 Not Found) - Pilot error detected!
+🟣 5xx SERVER ERROR (500 Crashed) - Server malfunction!
+
+📡 Most Common: 200 OK • 404 Not Found • 500 Server Error • 401 Unauthorized • 403 Forbidden
+
+🎮 YOUR MISSION: Choose the correct meaning to navigate safely!
+✅ Right answer = Smooth flight path    ❌ Wrong answer = Asteroid field
+
+🎯 Pro Tip: Remember the number ranges - they tell the whole story!`;
+
+                this.questionText.setText(onboardingText);
+                this.questionText.setPosition(400, 300);
+                this.questionText.setFontSize(14);
+                this.questionText.setWordWrapWidth(700);
+
+                this.instructionText.setText('⭐ READY FOR TAKEOFF? Press any arrow to launch into space! ⭐');
+                this.instructionText.setPosition(400, 520);
+                this.instructionText.setFontSize(16);
+
+                // Add visual background for better readability
+                if (!this.onboardingGraphics) {
+                    this.onboardingGraphics = this.add.graphics();
+
+                    // Dark background for text readability
+                    this.onboardingGraphics.fillStyle(0x000000, 0.7);
+                    this.onboardingGraphics.fillRoundedRect(50, 60, 700, 480, 15);
+
+                    // Decorative border
+                    this.onboardingGraphics.lineStyle(3, 0x4488ff, 0.9);
+                    this.onboardingGraphics.strokeRoundedRect(50, 60, 700, 480, 15);
+
+                    // Corner accents
+                    this.onboardingGraphics.fillStyle(0x88ddff, 0.8);
+                    this.onboardingGraphics.fillCircle(70, 80, 6);
+                    this.onboardingGraphics.fillCircle(730, 80, 6);
+                    this.onboardingGraphics.fillCircle(70, 520, 6);
+                    this.onboardingGraphics.fillCircle(730, 520, 6);
+
+                    // Move graphics behind text
+                    this.onboardingGraphics.setDepth(-1);
+                }
+            }
+
+            createStarField() {
+                // Create an advanced dynamic starfield
+                this.stars = [];
+                this.starLayers = [[], [], []]; // Multiple depth layers
+
+                // Background stars (slowest)
+                for (let i = 0; i < 80; i++) {
+                    const x = Phaser.Math.Between(0, 800);
+                    const y = Phaser.Math.Between(0, 600);
+                    const size = Phaser.Math.Between(0.5, 1.5);
+                    const brightness = Phaser.Math.Between(0.3, 0.6);
+
+                    const star = this.add.circle(x, y, size, 0xaabbff, brightness);
+                    star.scrollSpeed = 0.3;
+                    star.twinkleOffset = Math.random() * Math.PI * 2;
+                    this.starLayers[0].push(star);
+                    this.stars.push(star);
+                }
+
+                // Mid-ground stars (medium speed)
+                for (let i = 0; i < 60; i++) {
+                    const x = Phaser.Math.Between(0, 800);
+                    const y = Phaser.Math.Between(0, 600);
+                    const size = Phaser.Math.Between(1, 2.5);
+                    const brightness = Phaser.Math.Between(0.5, 0.8);
+
+                    const star = this.add.circle(x, y, size, 0xffffff, brightness);
+                    star.scrollSpeed = 0.8;
+                    star.twinkleOffset = Math.random() * Math.PI * 2;
+                    this.starLayers[1].push(star);
+                    this.stars.push(star);
+                }
+
+                // Foreground stars (fastest)
+                for (let i = 0; i < 40; i++) {
+                    const x = Phaser.Math.Between(0, 800);
+                    const y = Phaser.Math.Between(0, 600);
+                    const size = Phaser.Math.Between(2, 4);
+                    const brightness = Phaser.Math.Between(0.7, 1.0);
+
+                    const star = this.add.circle(x, y, size, 0xffffdd, brightness);
+                    star.scrollSpeed = 1.5;
+                    star.twinkleOffset = Math.random() * Math.PI * 2;
+                    this.starLayers[2].push(star);
+                    this.stars.push(star);
+                }
+
+                // Enhanced nebula system
+                this.nebulae = [];
+                const nebulaColors = [
+                    [0x2a1a4a, 0x4a2a7a], // Purple
+                    [0x1a2a4a, 0x2a4a7a], // Blue  
+                    [0x4a2a1a, 0x7a4a2a], // Orange
+                    [0x2a4a1a, 0x4a7a2a]  // Green
+                ];
+
+                for (let i = 0; i < 6; i++) {
+                    const x = Phaser.Math.Between(-150, 950);
+                    const y = Phaser.Math.Between(-150, 750);
+                    const size = Phaser.Math.Between(80, 250);
+                    const colorPair = nebulaColors[i % nebulaColors.length];
+                    const speed = Phaser.Math.Between(0.1, 0.5);
+
+                    // Create nebula with gradient effect
+                    const nebula = this.add.graphics();
+                    nebula.x = x;
+                    nebula.y = y;
+                    nebula.fillGradientStyle(colorPair[0], colorPair[0], colorPair[1], colorPair[1], 0.05);
+                    nebula.fillCircle(0, 0, size);
+
+                    // Add inner glow
+                    nebula.fillGradientStyle(colorPair[1], colorPair[1], colorPair[0], colorPair[0], 0.08);
+                    nebula.fillCircle(0, 0, size * 0.6);
+
+                    nebula.scrollSpeed = speed;
+                    nebula.pulseOffset = Math.random() * Math.PI * 2;
+                    this.nebulae.push(nebula);
+                }
+
+                // Add some distant galaxies
+                this.galaxies = [];
+                for (let i = 0; i < 3; i++) {
+                    const x = Phaser.Math.Between(100, 700);
+                    const y = Phaser.Math.Between(100, 500);
+                    const galaxy = this.add.graphics();
+                    galaxy.x = x;
+                    galaxy.y = y;
+
+                    // Spiral galaxy effect
+                    galaxy.fillGradientStyle(0x663366, 0x663366, 0x221122, 0x221122, 0.03);
+                    galaxy.fillEllipse(0, 0, 60, 20);
+                    galaxy.rotation = Math.random() * Math.PI;
+                    galaxy.scrollSpeed = 0.15;
+
+                    this.galaxies.push(galaxy);
+                }
+            }
+
+            createTrack() {
+                // Clean space lanes without visual clutter - just define navigation paths
+                this.laneEffects = [];
+
+                // Define lane centers for navigation (invisible but functional)
+                this.lanes = [150, 300, 500, 650]; // Far-Left, Left, Right, Far-Right
+
+                // Optional: Add very subtle navigation hints only when needed
+                // (keeping this minimal and clean)
+            }
+
+            createSpaceship() {
+                this.spaceship = this.add.graphics();
+                this.updateSpaceshipPosition();
+            }
+
+            createAsteroid(x, y) {
+                const asteroid = this.add.graphics();
+                asteroid.x = x;
+                asteroid.y = y;
+
+                // Create a much more detailed asteroid
+                const size = Phaser.Math.Between(18, 24);
+                const rotation = Math.random() * Math.PI * 2;
+
+                // Main asteroid body with irregular shape
+                const points = [];
+                const numPoints = 8;
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = (i / numPoints) * Math.PI * 2;
+                    const radius = size + Phaser.Math.Between(-5, 3);
+                    const px = Math.cos(angle + rotation) * radius;
+                    const py = Math.sin(angle + rotation) * radius;
+                    points.push(px, py);
+                }
+
+                // Main body with gradient
+                asteroid.fillGradientStyle(0x553333, 0x553333, 0x221111, 0x221111, 1);
+                asteroid.fillPoints(points, true);
+
+                // Surface details and craters
+                asteroid.fillStyle(0x442222);
+                for (let i = 0; i < 4; i++) {
+                    const craterX = Phaser.Math.Between(-size / 2, size / 2);
+                    const craterY = Phaser.Math.Between(-size / 2, size / 2);
+                    const craterSize = Phaser.Math.Between(3, 8);
+                    asteroid.fillCircle(craterX, craterY, craterSize);
+                }
+
+                // Darker surface variations
+                asteroid.fillStyle(0x331111);
+                for (let i = 0; i < 3; i++) {
+                    const detailX = Phaser.Math.Between(-size / 2, size / 2);
+                    const detailY = Phaser.Math.Between(-size / 2, size / 2);
+                    const detailSize = Phaser.Math.Between(2, 5);
+                    asteroid.fillCircle(detailX, detailY, detailSize);
+                }
+
+                // Highlight edges for 3D effect
+                asteroid.lineStyle(1, 0x775544, 0.6);
+                asteroid.strokePoints(points, true);
+
+                // Add some mineral veins
+                asteroid.lineStyle(1, 0x666633, 0.4);
+                asteroid.beginPath();
+                asteroid.moveTo(-size / 3, -size / 4);
+                asteroid.lineTo(size / 4, size / 3);
+                asteroid.moveTo(-size / 4, size / 2);
+                asteroid.lineTo(size / 3, -size / 3);
+                asteroid.strokePath();
+
+                // Glowing core (optional, for dangerous asteroids)
+                if (Math.random() > 0.7) {
+                    const pulseAlpha = 0.2 + Math.sin(this.time.now * 0.01) * 0.1;
+                    asteroid.fillStyle(0xff4422, pulseAlpha);
+                    asteroid.fillCircle(0, 0, size * 0.3);
+                }
+
+                // Store rotation for animation
+                asteroid.rotation = rotation;
+                asteroid.rotationSpeed = Phaser.Math.Between(-0.02, 0.02);
+
+                this.asteroids.push(asteroid);
+                return asteroid;
+            }
+
+            updateSpaceshipPosition() {
+                this.spaceship.clear();
+
+                if (this.crashed) {
+                    // Draw detailed crash debris
+                    const time = this.time.now;
+
+                    // Main wreckage pieces
+                    this.spaceship.fillStyle(0x444444);
+                    this.spaceship.fillTriangle(
+                        this.shipX - 5, this.shipY - 10,
+                        this.shipX - 15, this.shipY + 5,
+                        this.shipX - 8, this.shipY + 8
+                    );
+
+                    this.spaceship.fillStyle(0x666666);
+                    this.spaceship.fillTriangle(
+                        this.shipX + 3, this.shipY - 8,
+                        this.shipX + 12, this.shipY + 2,
+                        this.shipX + 6, this.shipY + 10
+                    );
+
+                    // Scattered wing pieces
+                    this.spaceship.fillStyle(0x555555);
+                    this.spaceship.fillRect(this.shipX - 18, this.shipY + 12, 6, 2);
+                    this.spaceship.fillRect(this.shipX + 14, this.shipY + 8, 4, 3);
+
+                    // Explosive fire effects
+                    for (let i = 0; i < 12; i++) {
+                        const offsetX = Phaser.Math.Between(-25, 25);
+                        const offsetY = Phaser.Math.Between(-20, 15);
+                        const intensity = 0.6 + Math.sin(time * 0.02 + i) * 0.4;
+
+                        if (i % 3 === 0) {
+                            this.spaceship.fillStyle(0xff2200, intensity);
+                        } else if (i % 3 === 1) {
+                            this.spaceship.fillStyle(0xff8800, intensity);
+                        } else {
+                            this.spaceship.fillStyle(0xffdd00, intensity);
+                        }
+
+                        this.spaceship.fillCircle(this.shipX + offsetX, this.shipY + offsetY, Phaser.Math.Between(2, 5));
+                    }
+
+                    // Sparks and electrical effects
+                    for (let i = 0; i < 6; i++) {
+                        const sparkAlpha = 0.3 + Math.sin(time * 0.05 + i * 2) * 0.7;
+                        this.spaceship.fillStyle(0x88ddff, sparkAlpha);
+                        const sparkX = this.shipX + Phaser.Math.Between(-15, 15);
+                        const sparkY = this.shipY + Phaser.Math.Between(-10, 10);
+                        this.spaceship.fillRect(sparkX, sparkY, 1, 4);
+                    }
+
+                    // Smoke effect (darker particles)
+                    for (let i = 0; i < 5; i++) {
+                        const smokeAlpha = 0.2 + Math.sin(time * 0.01 + i) * 0.1;
+                        this.spaceship.fillStyle(0x333333, smokeAlpha);
+                        const smokeX = this.shipX + Phaser.Math.Between(-12, 12);
+                        const smokeY = this.shipY + Phaser.Math.Between(-15, -5);
+                        this.spaceship.fillCircle(smokeX, smokeY, Phaser.Math.Between(3, 8));
+                    }
+                } else {
+                    // Draw advanced spaceship with much more detail
+                    const shipColors = [0x00aaff, 0x00ff88, 0xaa00ff]; // Blue, Green, Purple
+                    const currentColor = shipColors[this.currentLevel - 1] || 0x00aaff;
+                    const time = this.time.now;
+
+                    // Main hull with gradient effect
+                    this.spaceship.fillGradientStyle(currentColor, currentColor, 0x4488bb, 0x4488bb, 1);
+                    this.spaceship.fillTriangle(
+                        this.shipX, this.shipY - 20,        // Nose
+                        this.shipX - 14, this.shipY + 20,   // Bottom left
+                        this.shipX + 14, this.shipY + 20    // Bottom right
+                    );
+
+                    // Secondary hull details
+                    this.spaceship.fillStyle(0xffffff, 0.3);
+                    this.spaceship.fillTriangle(
+                        this.shipX, this.shipY - 18,
+                        this.shipX - 8, this.shipY + 15,
+                        this.shipX + 8, this.shipY + 15
+                    );
+
+                    // Advanced wing system
+                    this.spaceship.fillStyle(currentColor);
+                    // Left wing with swept design
+                    const leftWing = [
+                        this.shipX - 14, this.shipY + 5,
+                        this.shipX - 22, this.shipY + 8,
+                        this.shipX - 20, this.shipY + 15,
+                        this.shipX - 8, this.shipY + 12
+                    ];
+                    this.spaceship.fillPoints(leftWing, true);
+
+                    // Right wing with swept design
+                    const rightWing = [
+                        this.shipX + 14, this.shipY + 5,
+                        this.shipX + 22, this.shipY + 8,
+                        this.shipX + 20, this.shipY + 15,
+                        this.shipX + 8, this.shipY + 12
+                    ];
+                    this.spaceship.fillPoints(rightWing, true);
+
+                    // Wing tip lights (blinking)
+                    const lightAlpha = 0.5 + Math.sin(time * 0.008) * 0.5;
+                    this.spaceship.fillStyle(0x00ffff, lightAlpha);
+                    this.spaceship.fillCircle(this.shipX - 22, this.shipY + 8, 2);
+                    this.spaceship.fillCircle(this.shipX + 22, this.shipY + 8, 2);
+
+                    // Advanced engine system with multiple thrusters
+                    const glowIntensity = 0.9 + Math.sin(time * 0.015) * 0.1;
+
+                    // Main engines
+                    this.spaceship.fillStyle(0xff4400, glowIntensity);
+                    this.spaceship.fillEllipse(this.shipX - 6, this.shipY + 22, 4, 12);
+                    this.spaceship.fillEllipse(this.shipX + 6, this.shipY + 22, 4, 12);
+
+                    // Engine cores
+                    this.spaceship.fillStyle(0xffaa00, glowIntensity);
+                    this.spaceship.fillEllipse(this.shipX - 6, this.shipY + 20, 2, 8);
+                    this.spaceship.fillEllipse(this.shipX + 6, this.shipY + 20, 2, 8);
+
+                    // Engine exhaust particles
+                    for (let i = 0; i < 4; i++) {
+                        const particleAlpha = 0.4 + Math.sin(time * 0.02 + i) * 0.3;
+                        this.spaceship.fillStyle(0xffdd00, particleAlpha);
+                        this.spaceship.fillCircle(this.shipX - 6, this.shipY + 28 + i * 4, 1.5);
+                        this.spaceship.fillCircle(this.shipX + 6, this.shipY + 28 + i * 4, 1.5);
+                    }
+
+                    // Advanced cockpit design
+                    this.spaceship.fillStyle(0x222244);
+                    this.spaceship.fillEllipse(this.shipX, this.shipY - 5, 12, 16);
+
+                    // Cockpit glass with reflection
+                    this.spaceship.fillStyle(0x88ccff, 0.8);
+                    this.spaceship.fillEllipse(this.shipX, this.shipY - 5, 10, 14);
+
+                    // Cockpit highlight
+                    this.spaceship.fillStyle(0xffffff, 0.4);
+                    this.spaceship.fillEllipse(this.shipX - 2, this.shipY - 8, 4, 6);
+
+                    // Pilot indicator with level-based enhancements
+                    const pilotColors = [0x88ddff, 0x88ff88, 0xff88ff];
+                    this.spaceship.fillStyle(pilotColors[this.currentLevel - 1] || 0x88ddff, 0.9);
+                    this.spaceship.fillCircle(this.shipX, this.shipY - 2, 3);
+
+                    // Level-specific enhancements
+                    if (this.currentLevel > 1) {
+                        // Add energy shields
+                        this.spaceship.lineStyle(2, 0x00ffff, 0.3 + Math.sin(time * 0.01) * 0.2);
+                        this.spaceship.strokeCircle(this.shipX, this.shipY, 25);
+                    }
+
+                    if (this.currentLevel > 2) {
+                        // Add weapon systems
+                        this.spaceship.fillStyle(0xff0088, 0.7);
+                        this.spaceship.fillRect(this.shipX - 2, this.shipY - 22, 4, 6);
+
+                        // Weapon charge indicator
+                        const chargeAlpha = 0.5 + Math.sin(time * 0.02) * 0.5;
+                        this.spaceship.fillStyle(0xff4488, chargeAlpha);
+                        this.spaceship.fillRect(this.shipX - 1, this.shipY - 24, 2, 2);
+                    }
+                }
+            }
+
+            createUI() {
+                // Level indicator
+                this.levelText = this.add.text(400, 15, '', {
+                    fontSize: '16px',
+                    fill: '#88ddff',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                // Progress indicator
+                this.progressText = this.add.text(400, 35, '', {
+                    fontSize: '12px',
+                    fill: '#ffffff',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                // Error code display
+                this.errorCodeText = this.add.text(400, 65, '', {
+                    fontSize: '32px',
+                    fill: '#ff4444',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                // Question text
+                this.questionText = this.add.text(400, 100, '', {
+                    fontSize: '16px',
+                    fill: '#ffffff',
+                    fontFamily: 'Courier New',
+                    align: 'center',
+                    wordWrap: { width: 600 }
+                }).setOrigin(0.5);
+
+                // Answer options positioned for the lanes with better spacing
+                this.leftAnswerText = this.add.text(300, 140, '', {
+                    fontSize: '13px',
+                    fill: '#00ff88',
+                    fontFamily: 'Courier New',
+                    align: 'center',
+                    wordWrap: { width: 250 }
+                }).setOrigin(0.5);
+
+                this.rightAnswerText = this.add.text(500, 140, '', {
+                    fontSize: '13px',
+                    fill: '#00ff88',
+                    fontFamily: 'Courier New',
+                    align: 'center',
+                    wordWrap: { width: 250 }
+                }).setOrigin(0.5);
+
+                // Instructions
+                this.instructionText = this.add.text(400, 175, '⭐ Choose LEFT ← or RIGHT → lane to navigate! ⭐', {
+                    fontSize: '14px',
+                    fill: '#aaaaaa',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                // Crash message (initially hidden)
+                this.crashMessageText = this.add.text(400, 200, '', {
+                    fontSize: '16px',
+                    fill: '#ff0000',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+
+                // Whimsy message
+                this.whimsyText = this.add.text(400, 225, '', {
+                    fontSize: '12px',
+                    fill: '#ffdd88',
+                    fontFamily: 'Courier New',
+                    align: 'center',
+                    fontStyle: 'italic'
+                }).setOrigin(0.5);
+
+                // Reference panel (helpful reminders)
+                this.referenceText = this.add.text(400, 580, '', {
+                    fontSize: '10px',
+                    fill: '#888888',
+                    fontFamily: 'Courier New',
+                    align: 'center'
+                }).setOrigin(0.5);
+            }
+
+            getCurrentQuestions() {
+                switch (this.currentLevel) {
+                    case 1: return this.level1Questions;
+                    case 2: return this.level2Questions;
+                    case 3: return this.level3Questions;
+                    default: return this.level1Questions;
+                }
+            }
+
+            showQuestion() {
+                const questions = this.getCurrentQuestions();
+
+                if (this.currentQuestion >= questions.length) {
+                    this.nextLevel();
+                    return;
+                }
+
+                const question = questions[this.currentQuestion];
+                const levelNames = ['🌟 SPACE CADET', '🚀 COSMIC PILOT', '👑 QUANTUM MASTER'];
+
+                // Restore all UI elements and proper positioning after onboarding
+                this.levelText.setVisible(true);
+                this.errorCodeText.setVisible(true);
+                this.questionText.setVisible(true);
+                this.leftAnswerText.setVisible(true);
+                this.rightAnswerText.setVisible(true);
+                this.referenceText.setVisible(true);
+                this.whimsyText.setVisible(true);
+                this.instructionText.setVisible(true);
+                this.progressText.setVisible(true);
+
+                // Reset text positioning and sizes to game layout
+                this.levelText.setPosition(400, 15);
+                this.levelText.setFontSize(16);
+                this.progressText.setPosition(400, 35);
+                this.progressText.setFontSize(12);
+                this.errorCodeText.setPosition(400, 65);
+                this.questionText.setPosition(400, 100);
+                this.questionText.setFontSize(16);
+                this.questionText.setWordWrapWidth(600);
+                this.leftAnswerText.setPosition(300, 140);
+                this.rightAnswerText.setPosition(500, 140);
+                this.instructionText.setPosition(400, 175);
+                this.instructionText.setFontSize(14);
+                this.whimsyText.setPosition(400, 225);
+                this.referenceText.setPosition(400, 580);
+
+                this.levelText.setText(`${levelNames[this.currentLevel - 1]} - Level ${this.currentLevel}`);
+                this.errorCodeText.setText(`⚡ HTTP ${question.code} ⚡`);
+                this.questionText.setText(question.question);
+                this.leftAnswerText.setText(`← ${question.leftAnswer}`);
+                this.rightAnswerText.setText(`${question.rightAnswer} →`);
+                this.crashMessageText.setText('');
+                this.whimsyText.setText('💡 Quick Hint: 2xx=Success, 4xx=Client Error, 5xx=Server Error ✨');
+                this.progressText.setText(`Space Mission ${this.currentQuestion + 1} of ${questions.length}`);
+                this.instructionText.setText('⭐ Choose ← LEFT or RIGHT → to navigate! ⭐');
+
+                // Show helpful reference based on current error code
+                const referenceMap = {
+                    '200': 'Remember: 200 = OK (Everything worked perfectly!)',
+                    '404': 'Remember: 404 = Not Found (The resource doesn\'t exist)',
+                    '500': 'Remember: 500 = Internal Server Error (Server broke down)',
+                    '401': 'Remember: 401 = Unauthorized (You need to log in)',
+                    '403': 'Remember: 403 = Forbidden (You\'re not allowed)',
+                    '429': 'Remember: 429 = Too Many Requests (Slow down!)',
+                    '503': 'Remember: 503 = Service Unavailable (Server is down)',
+                    '502': 'Remember: 502 = Bad Gateway (Proxy problems)',
+                    '400': 'Remember: 400 = Bad Request (Your request is malformed)',
+                    '408': 'Remember: 408 = Request Timeout (Too slow)',
+                    '301': 'Remember: 301 = Moved Permanently (New address forever)',
+                    '302': 'Remember: 302 = Found/Temp Redirect (New address temporarily)',
+                    '422': 'Remember: 422 = Unprocessable Entity (Valid but wrong)',
+                    '418': 'Remember: 418 = I\'m a teapot (Classic internet joke!)',
+                    '504': 'Remember: 504 = Gateway Timeout (Proxy too slow)'
+                };
+
+                this.referenceText.setText(referenceMap[question.code] || 'Study the patterns: 2xx=Good, 4xx=Your fault, 5xx=Server fault');
+
+                // Reset navigation state
+                this.crashed = false;
+                this.navigating = false;
+                this.successAnimation = false;
+                this.animationPhase = 'slide';
+                this.targetX = null;
+                this.updateSpaceshipPosition();
+
+                // Clean up onboarding graphics if they exist
+                if (this.onboardingGraphics) {
+                    this.onboardingGraphics.destroy();
+                    this.onboardingGraphics = null;
+                }
+
+                // Ensure crash message is hidden during normal gameplay
+                this.crashMessageText.setVisible(false);
+
+                // Clear any existing asteroids
+                this.asteroids.forEach(asteroid => asteroid.destroy());
+                this.asteroids = [];
+            }
+
+            nextLevel() {
+                if (this.currentLevel < 3) {
+                    this.currentLevel++;
+                    this.currentQuestion = 0;
+                    this.shipX = 400; // Reset to center
+                    this.shipY = 500; // Reset to bottom
+                    this.gameSpeed += 0.5; // Increase speed each level
+                    this.showLevelUp();
+                } else {
+                    this.showVictory();
+                }
+            }
+
+            showLevelUp() {
+                const levelMessages = [
+                    '',
+                    '🎉 LEVEL UP! Asteroids move faster now! 🌶️',
+                    '🔥 MAXIMUM DIFFICULTY! Space legend mode activated! 🔥'
+                ];
+
+                // Show level up screen with proper positioning
+                this.levelText.setVisible(true);
+                this.errorCodeText.setVisible(true);
+                this.questionText.setVisible(true);
+                this.leftAnswerText.setVisible(false);
+                this.rightAnswerText.setVisible(false);
+                this.instructionText.setVisible(true);
+                this.whimsyText.setVisible(true);
+                this.progressText.setVisible(true);
+                this.referenceText.setVisible(false);
+                this.crashMessageText.setVisible(false);
+
+                // Reset positioning for level up screen
+                this.levelText.setPosition(400, 80);
+                this.levelText.setFontSize(20);
+                this.errorCodeText.setPosition(400, 120);
+                this.questionText.setPosition(400, 180);
+                this.questionText.setFontSize(18);
+
+                this.errorCodeText.setText('⭐ LEVEL COMPLETE! ⭐');
+                this.questionText.setText(levelMessages[this.currentLevel - 1]);
+                this.instructionText.setText('Get ready for faster asteroid fields!');
+                this.whimsyText.setText('The universe believes in you, space captain! ✨');
+
+                // Reset navigation state
+                this.navigating = false;
+                this.crashed = false;
+                this.targetX = null;
+                this.asteroids.forEach(asteroid => asteroid.destroy());
+                this.asteroids = [];
+
+                this.time.delayedCall(3000, () => {
+                    this.showQuestion();
+                });
+            }
+
+            showVictory() {
+                // Show victory screen with proper visibility and positioning
+                this.levelText.setVisible(true);
+                this.errorCodeText.setVisible(true);
+                this.questionText.setVisible(true);
+                this.leftAnswerText.setVisible(false);
+                this.rightAnswerText.setVisible(false);
+                this.instructionText.setVisible(true);
+                this.whimsyText.setVisible(true);
+                this.progressText.setVisible(true);
+                this.referenceText.setVisible(true);
+                this.crashMessageText.setVisible(false);
+
+                // Reset text positioning for victory screen
+                this.levelText.setPosition(400, 60);
+                this.levelText.setFontSize(24);
+                this.errorCodeText.setPosition(400, 100);
+                this.questionText.setPosition(400, 150);
+                this.questionText.setFontSize(16);
+                this.questionText.setWordWrapWidth(600);
+
+                this.levelText.setText('🏆 GALACTIC LEGEND! 🏆');
+                this.errorCodeText.setText('🎊 ULTIMATE VICTORY! 🎊');
+                this.questionText.setText('You have mastered the cosmic art of HTTP status codes! The entire galaxy salutes your expertise!');
+                this.instructionText.setText('🚀 Press any arrow to embark on a new space adventure! 🚀');
+                this.crashMessageText.setText('');
+                this.whimsyText.setText('You are now certified to debug the entire internet! 🌐✨');
+                this.progressText.setText('MISSION ACCOMPLISHED, SPACE ACE! 🎯');
+                this.referenceText.setText('🎓 You\'ve mastered all the essential HTTP status codes! 🎓');
+
+                // Reset game state for replay
+                this.currentLevel = 1;
+                this.currentQuestion = 0;
+                this.shipX = 400;
+                this.shipY = 500;
+                this.gameSpeed = 2;
+                this.navigating = false;
+                this.crashed = false;
+                this.targetX = null;
+
+                // Clear asteroids
+                this.asteroids.forEach(asteroid => asteroid.destroy());
+                this.asteroids = [];
+            }
+
+            spawnObstacles() {
+                const questions = this.getCurrentQuestions();
+                const question = questions[this.currentQuestion];
+
+                // Clear existing asteroids
+                this.asteroids.forEach(asteroid => asteroid.destroy());
+                this.asteroids = [];
+
+                // Create obstacles only in the wrong lane
+                const wrongLane = question.correct === 'left' ? 2 : 1; // If correct is left, wrong is right lane (2)
+                const laneX = this.lanes[wrongLane];
+
+                // Create multiple asteroids coming down the wrong lane
+                for (let j = 0; j < 4; j++) {
+                    const obstacleY = -100 - (j * 120);
+                    this.createAsteroid(laneX, obstacleY);
+                }
+            }
+
+            handleAnswer(direction) {
+                if (this.crashed) {
+                    // Reset and try again
+                    this.crashed = false;
+                    this.shipX = 400;
+                    this.shipY = 500;
+                    this.showQuestion();
+                    return;
+                }
+
+                const questions = this.getCurrentQuestions();
+
+                if (this.currentQuestion >= questions.length) {
+                    this.nextLevel();
+                    return;
+                }
+
+                const question = questions[this.currentQuestion];
+                const isCorrect = question.correct === direction;
+
+                if (isCorrect) {
+                    // Correct answer - animate ship movement to chosen side, then forward, then recenter
+                    this.navigating = true;
+
+                    // Determine target lane
+                    if (direction === 'left') {
+                        this.targetX = this.lanes[1]; // Left lane
+                    } else {
+                        this.targetX = this.lanes[2]; // Right lane  
+                    }
+
+                    // Show success feedback
+                    this.whimsyText.setText(question.whimsy);
+                    this.errorCodeText.setText('✅ CORRECT NAVIGATION! ✅');
+                    this.questionText.setText('Perfect piloting, space captain!');
+                    this.leftAnswerText.setVisible(false);
+                    this.rightAnswerText.setVisible(false);
+                    this.instructionText.setText('🎉 Smooth sailing through safe space! 🎉');
+
+                    // Start the success animation sequence
+                    this.successAnimation = true;
+                    this.animationPhase = 'slide'; // slide -> forward -> recenter
+
+                } else {
+                    // Wrong answer - navigate through asteroid field
+                    if (direction === 'left') {
+                        this.targetX = this.lanes[1]; // Center-left lane
+                    } else {
+                        this.targetX = this.lanes[2]; // Center-right lane  
+                    }
+
+                    // Start moving forward and spawn obstacles
+                    this.spawnObstacles();
+                    this.navigating = true;
+
+                    // Hide UI during navigation
+                    this.errorCodeText.setVisible(false);
+                    this.questionText.setVisible(false);
+                    this.leftAnswerText.setVisible(false);
+                    this.rightAnswerText.setVisible(false);
+                    this.instructionText.setText('⚠️ Asteroid field ahead! Navigate carefully! ⚠️');
+                    this.whimsyText.setText('Wrong choice = dangerous path! 🪨');
+                }
+            }
+
+            checkCollisions() {
+                if (!this.navigating || this.crashed) return;
+
+                // Check if ship has navigated far enough up to be safe
+                if (this.shipY < 100) {
+                    // Successfully navigated through asteroid field!
+                    this.navigating = false;
+                    this.currentQuestion++;
+
+                    const questions = this.getCurrentQuestions();
+                    const question = questions[this.currentQuestion - 1];
+
+                    this.whimsyText.setText(question.whimsy + ' Lucky escape!');
+                    this.instructionText.setText('🎉 You survived the asteroid field! 🎉');
+
+                    // Clear asteroids and reset ship position
+                    this.asteroids.forEach(asteroid => asteroid.destroy());
+                    this.asteroids = [];
+
+                    this.time.delayedCall(1500, () => {
+                        this.shipX = 400;
+                        this.shipY = 500;
+                        this.showQuestion();
+                    });
+                    return;
+                }
+
+                // Check for asteroid collisions
+                this.asteroids.forEach(asteroid => {
+                    const distance = Phaser.Math.Distance.Between(
+                        this.shipX, this.shipY,
+                        asteroid.x, asteroid.y
+                    );
+
+                    if (distance < 25) {
+                        // Hit asteroid! Crash!
+                        this.crashed = true;
+                        this.navigating = false;
+
+                        const crashMessages = [
+                            'ASTEROID IMPACT! 💥 That\'s gonna leave a mark!',
+                            'COLLISION! 🔥 Hope you have space insurance!',
+                            'SMASH! 💫 The asteroid won that round!',
+                            'BONK! 🌟 Maybe study those error codes harder!',
+                            'CRASH! ⚡ Wrong answers are dangerous in space!'
+                        ];
+
+                        const randomCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
+                        // Show crash screen with proper positioning
+                        this.errorCodeText.setVisible(true);
+                        this.questionText.setVisible(true);
+                        this.crashMessageText.setVisible(true);
+                        this.whimsyText.setVisible(true);
+                        this.instructionText.setVisible(true);
+                        this.referenceText.setVisible(true);
+                        this.leftAnswerText.setVisible(false);
+                        this.rightAnswerText.setVisible(false);
+
+                        // Reset positioning for crash screen
+                        this.errorCodeText.setPosition(400, 65);
+                        this.questionText.setPosition(400, 120);
+                        this.crashMessageText.setPosition(400, 200);
+
+                        this.crashMessageText.setText(randomCrash);
+                        this.errorCodeText.setText('💥 ASTEROID HIT! 💥');
+                        this.questionText.setText('Press any arrow to retry, space pilot!');
+                        this.whimsyText.setText('Those asteroids are tougher than they look! 🪨✨');
+                        this.instructionText.setText('Press ← or → to try again');
+                        this.referenceText.setText('💡 Study the error code meanings to avoid asteroids! 💡');
+                    }
+                });
+            }
+
+            update() {
+                // Handle input
+                if (this.cursors.left.isDown) {
+                    if (!this.leftPressed) {
+                        if (this.waitingForStart) {
+                            if (this.onboardingStep === 0) {
+                                this.showOnboarding();
+                                this.onboardingStep = 1;
+                            } else {
+                                // Onboarding complete, start game
+                                this.waitingForStart = false;
+                                if (this.onboardingGraphics) {
+                                    this.onboardingGraphics.destroy();
+                                    this.onboardingGraphics = null;
+                                }
+                                this.showQuestion();
+                            }
+                        } else if (!this.navigating) {
+                            this.handleAnswer('left');
+                        }
+                        this.leftPressed = true;
+                    }
+                } else {
+                    this.leftPressed = false;
+                }
+
+                if (this.cursors.right.isDown) {
+                    if (!this.rightPressed) {
+                        if (this.waitingForStart) {
+                            if (this.onboardingStep === 0) {
+                                this.showOnboarding();
+                                this.onboardingStep = 1;
+                            } else {
+                                // Onboarding complete, start game
+                                this.waitingForStart = false;
+                                if (this.onboardingGraphics) {
+                                    this.onboardingGraphics.destroy();
+                                    this.onboardingGraphics = null;
+                                }
+                                this.showQuestion();
+                            }
+                        } else if (!this.navigating) {
+                            this.handleAnswer('right');
+                        }
+                        this.rightPressed = true;
+                    }
+                } else {
+                    this.rightPressed = false;
+                }
+
+                // Handle spaceship movement during navigation
+                if (this.navigating && !this.crashed) {
+                    if (this.successAnimation) {
+                        // Success animation sequence
+                        if (this.animationPhase === 'slide') {
+                            // Slide to target lane
+                            const diff = this.targetX - this.shipX;
+                            if (Math.abs(diff) > 3) {
+                                this.shipX += diff * 0.12;
+                            } else {
+                                this.shipX = this.targetX;
+                                this.animationPhase = 'forward';
+                            }
+                        } else if (this.animationPhase === 'forward') {
+                            // Move forward to show progress
+                            this.shipY -= 3;
+                            if (this.shipY < 200) {
+                                this.animationPhase = 'recenter';
+                                this.targetX = 400; // Return to center
+                            }
+                        } else if (this.animationPhase === 'recenter') {
+                            // Return to center
+                            const diffX = this.targetX - this.shipX;
+                            const diffY = 500 - this.shipY;
+
+                            if (Math.abs(diffX) > 3) {
+                                this.shipX += diffX * 0.1;
+                            } else {
+                                this.shipX = 400;
+                            }
+
+                            if (Math.abs(diffY) > 3) {
+                                this.shipY += diffY * 0.1;
+                            } else {
+                                this.shipY = 500;
+                            }
+
+                            // Check if animation complete
+                            if (Math.abs(diffX) <= 3 && Math.abs(diffY) <= 3) {
+                                this.successAnimation = false;
+                                this.navigating = false;
+                                this.currentQuestion++;
+
+                                this.time.delayedCall(500, () => {
+                                    this.showQuestion();
+                                });
+                            }
+                        }
+                    } else {
+                        // Asteroid field navigation (wrong answer)
+                        if (this.targetX) {
+                            const diff = this.targetX - this.shipX;
+                            if (Math.abs(diff) > 2) {
+                                this.shipX += diff * 0.15;
+                            } else {
+                                this.shipX = this.targetX;
+                            }
+                        }
+
+                        // Move ship forward slightly
+                        this.shipY -= this.gameSpeed;
+                        if (this.shipY < 100) {
+                            this.shipY = 500;
+                        }
+                    }
+
+                    this.updateSpaceshipPosition();
+                }
+
+                // Move asteroids downward with rotation
+                if (this.navigating && !this.successAnimation) {
+                    this.asteroids.forEach(asteroid => {
+                        asteroid.y += this.gameSpeed + 1;
+                        asteroid.rotation += asteroid.rotationSpeed;
+
+                        // Remove asteroids that are off screen
+                        if (asteroid.y > 700) {
+                            asteroid.y = -100 - Math.random() * 200;
+                        }
+                    });
+
+                    // Check collisions
+                    this.checkCollisions();
+                }
+
+                // Enhanced star animation with multiple layers and twinkling
+                if (this.stars) {
+                    this.stars.forEach((star, index) => {
+                        star.y += star.scrollSpeed * (this.navigating ? 1.5 : 1);
+                        if (star.y > 650) {
+                            star.y = -50;
+                            star.x = Phaser.Math.Between(0, 800);
+                        }
+
+                        // Advanced twinkling with individual offsets
+                        const twinkle = 0.3 + Math.sin(this.time.now * 0.004 + star.twinkleOffset) * 0.4;
+                        star.alpha = Math.max(0.1, twinkle);
+
+                        // Subtle size variation for depth
+                        const sizeVariation = 1 + Math.sin(this.time.now * 0.002 + star.twinkleOffset) * 0.1;
+                        star.setScale(sizeVariation);
+                    });
+                }
+
+                // Enhanced nebula animation
+                if (this.nebulae) {
+                    this.nebulae.forEach(cloud => {
+                        cloud.y += cloud.scrollSpeed * (this.navigating ? 1.2 : 1);
+                        if (cloud.y > 800) {
+                            cloud.y = -200;
+                            cloud.x = Phaser.Math.Between(-150, 950);
+                        }
+
+                        // Complex pulsing with individual timing
+                        const pulse = 0.05 + Math.sin(this.time.now * 0.002 + cloud.pulseOffset) * 0.03;
+                        cloud.alpha = pulse;
+
+                        // Gentle rotation
+                        cloud.rotation += 0.001;
+                    });
+                }
+
+                // Animate distant galaxies
+                if (this.galaxies) {
+                    this.galaxies.forEach(galaxy => {
+                        galaxy.y += galaxy.scrollSpeed;
+                        if (galaxy.y > 650) {
+                            galaxy.y = -100;
+                            galaxy.x = Phaser.Math.Between(100, 700);
+                        }
+                        galaxy.rotation += 0.005;
+                    });
+                }
+
+                // Lane effects removed for cleaner visual experience
+            }
+        }
+
+        // Game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#0a0a15',
+            scene: GameScene,
+            physics: {
+                default: 'arcade'
+            }
+        };
+
+        // Start the game
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+
+</html>
