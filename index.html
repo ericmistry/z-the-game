@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zapier Spaceship Command Center</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background: #000;
+            height: 100vh;
+        }
+
+        /* Moving space background */
+        .space-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0a1628 0%, #000000 100%);
+            overflow: hidden;
+        }
+
+        .stars-layer {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .stars-layer.layer1 {
+            animation: moveStars1 25s linear infinite;
+        }
+
+        .stars-layer.layer2 {
+            animation: moveStars2 40s linear infinite;
+        }
+
+        .stars-layer.layer3 {
+            animation: moveStars3 60s linear infinite;
+        }
+
+        @keyframes moveStars1 {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-500px, 400px); }
+        }
+
+        @keyframes moveStars2 {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-350px, 280px); }
+        }
+
+        @keyframes moveStars3 {
+            from { transform: translate(0, 0); }
+            to { transform: translate(-200px, 160px); }
+        }
+
+        /* Windshield frame structure */
+        .windshield-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Top windshield beam */
+        .windshield-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            background: linear-gradient(180deg, #1a1a2e 0%, #0f1520 100%);
+            box-shadow: 0 5px 40px rgba(0, 0, 0, 0.9);
+            border-bottom: 3px solid #3d5a7f;
+        }
+
+        .windshield-glow-top {
+            position: absolute;
+            bottom: -3px;
+            left: 10%;
+            right: 10%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #5ac8fa, #5ac8fa, transparent);
+            box-shadow: 0 0 25px #5ac8fa;
+        }
+
+        /* Left windshield support - removed */
+        .windshield-left {
+            display: none;
+        }
+
+        .windshield-left-edge {
+            display: none;
+        }
+
+        /* Right windshield support - removed */
+        .windshield-right {
+            display: none;
+        }
+
+        .windshield-right-edge {
+            display: none;
+        }
+
+        /* Dashboard complex structure */
+        .dashboard {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 400px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* Main dashboard panel */
+        .dashboard-main {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 1600px;
+            height: 380px;
+            background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%);
+            border-radius: 25px 25px 0 0;
+            border: 3px solid #3d5a7f;
+            border-bottom: none;
+            box-shadow: 0 -15px 60px rgba(0, 0, 0, 0.95),
+                        inset 0 3px 15px rgba(93, 200, 250, 0.15);
+            pointer-events: auto;
+        }
+
+        /* Dashboard top edge */
+        .dashboard-edge {
+            position: absolute;
+            top: 0;
+            left: 3%;
+            right: 3%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #5ac8fa 20%, #5ac8fa 80%, transparent);
+            box-shadow: 0 0 25px #5ac8fa, 0 0 50px rgba(93, 200, 250, 0.5);
+        }
+
+        /* Side panels on dashboard */
+        .dashboard-side-panel {
+            position: absolute;
+            top: 40px;
+            width: 180px;
+            height: calc(100% - 60px);
+            background: linear-gradient(135deg, #0d1318 0%, #1a2332 100%);
+            border: 2px solid #2a4a6f;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .dashboard-side-panel.left {
+            left: 20px;
+        }
+
+        .dashboard-side-panel.right {
+            right: 20px;
+        }
+
+        /* Small indicator panels on sides */
+        .side-indicator {
+            width: 100%;
+            height: 60px;
+            background: rgba(93, 200, 250, 0.05);
+            border: 1px solid #3d5a7f;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .side-indicator::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #5ac8fa, transparent);
+            animation: scanLine 3s infinite;
+        }
+
+        @keyframes scanLine {
+            0%, 100% { top: 0; opacity: 0; }
+            50% { top: 100%; opacity: 1; }
+        }
+
+        .side-indicator-text {
+            font-size: 0.7rem;
+            color: #5ac8fa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Central control area */
+        .dashboard-center {
+            position: absolute;
+            top: 30px;
+            left: 220px;
+            right: 220px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 1rem;
+        }
+
+        /* Top status bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            height: 50px;
+            background: rgba(13, 19, 24, 0.8);
+            border: 2px solid #2a4a6f;
+            border-radius: 8px;
+            padding: 0 1.5rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #7eb8d4;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.green {
+            background: #4ade80;
+            box-shadow: 0 0 12px #4ade80;
+        }
+
+        .status-dot.blue {
+            background: #5ac8fa;
+            box-shadow: 0 0 12px #5ac8fa;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.9); }
+        }
+
+        /* Game control buttons grid */
+        .game-controls {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, #1e3347 0%, #0d1318 100%);
+            border: 3px solid #3d5a7f;
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5),
+                        inset 0 2px 8px rgba(93, 200, 250, 0.1);
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(93, 200, 250, 0.3) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .control-button:hover::before {
+            opacity: 1;
+        }
+
+        .control-button::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(93, 200, 250, 0.4), transparent);
+            transition: left 0.6s;
+        }
+
+        .control-button:hover::after {
+            left: 100%;
+        }
+
+        .control-button:hover {
+            transform: translateY(-8px);
+            border-color: #5ac8fa;
+            box-shadow: 0 8px 35px rgba(93, 200, 250, 0.6),
+                        inset 0 0 25px rgba(93, 200, 250, 0.3);
+        }
+
+        .control-button:active {
+            transform: translateY(-4px);
+        }
+
+        .button-icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 0.8rem;
+            filter: drop-shadow(0 0 15px rgba(93, 200, 250, 0.7));
+            position: relative;
+            z-index: 1;
+        }
+
+        .button-label {
+            font-size: 0.95rem;
+            color: #5ac8fa;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+            line-height: 1.3;
+            text-shadow: 0 0 10px rgba(93, 200, 250, 0.5);
+            position: relative;
+            z-index: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .button-sublabel {
+            font-size: 0.7rem;
+            color: #7eb8d4;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Corner details */
+        .control-button-corner {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border: 2px solid #5ac8fa;
+            opacity: 0.5;
+        }
+
+        .control-button-corner.top-left {
+            top: 5px;
+            left: 5px;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .control-button-corner.bottom-right {
+            bottom: 5px;
+            right: 5px;
+            border-left: none;
+            border-top: none;
+        }
+
+        /* Central title area */
+        .title-area {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .main-title {
+            font-size: 5.5rem;
+            color: #5ac8fa;
+            text-shadow: 0 0 60px rgba(93, 200, 250, 0.9),
+                         0 0 120px rgba(93, 200, 250, 0.5);
+            font-weight: 700;
+            letter-spacing: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 2rem;
+            color: #7eb8d4;
+            text-shadow: 0 0 40px rgba(126, 184, 212, 0.7);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        /* Status indicators on top bar */
+        .top-status-lights {
+            position: absolute;
+            top: 35px;
+            right: 40px;
+            display: flex;
+            gap: 15px;
+            z-index: 12;
+        }
+
+        .status-light {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        .status-light.green {
+            background: #4ade80;
+            box-shadow: 0 0 20px #4ade80;
+        }
+
+        .status-light.blue {
+            background: #5ac8fa;
+            box-shadow: 0 0 20px #5ac8fa;
+            animation-delay: 0.4s;
+        }
+
+        .status-light.orange {
+            background: #ff7b00;
+            box-shadow: 0 0 20px #ff7b00;
+            animation-delay: 0.8s;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        @media (max-width: 1400px) {
+            .main-title {
+                font-size: 4rem;
+            }
+            
+            .dashboard-side-panel {
+                width: 140px;
+            }
+            
+            .dashboard-center {
+                left: 160px;
+                right: 160px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-title {
+                font-size: 3rem;
+            }
+            
+            .subtitle {
+                font-size: 1.4rem;
+            }
+            
+            .game-controls {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .dashboard-side-panel {
+                display: none;
+            }
+            
+            .dashboard-center {
+                left: 20px;
+                right: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .windshield-left, .windshield-right {
+                width: 80px;
+            }
+            
+            .main-title {
+                font-size: 2rem;
+            }
+            
+            .game-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Moving space background through windshield -->
+    <div class="space-background">
+        <div class="stars-layer layer1" id="stars1"></div>
+        <div class="stars-layer layer2" id="stars2"></div>
+        <div class="stars-layer layer3" id="stars3"></div>
+    </div>
+
+    <!-- Title in center of view -->
+    <div class="title-area">
+        <h1 class="main-title">ZAPIER COMMAND</h1>
+        <p class="subtitle">Troubleshooting Operations</p>
+    </div>
+
+    <!-- Windshield frame structure -->
+    <div class="windshield-frame">
+        <!-- Top beam -->
+        <div class="windshield-top">
+            <div class="windshield-glow-top"></div>
+        </div>
+        
+        <!-- Status lights on top -->
+        <div class="top-status-lights">
+            <div class="status-light green"></div>
+            <div class="status-light blue"></div>
+            <div class="status-light green"></div>
+            <div class="status-light orange"></div>
+            <div class="status-light blue"></div>
+        </div>
+        
+        <!-- Left support -->
+        <div class="windshield-left">
+            <div class="windshield-left-edge"></div>
+        </div>
+        
+        <!-- Right support -->
+        <div class="windshield-right">
+            <div class="windshield-right-edge"></div>
+        </div>
+    </div>
+
+    <!-- Complex dashboard with game control buttons -->
+    <div class="dashboard">
+        <div class="dashboard-main">
+            <div class="dashboard-edge"></div>
+            
+            <!-- Left side panel -->
+            <div class="dashboard-side-panel left">
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Power: 100%</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Systems: OK</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Nav: Active</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Shields: Up</span>
+                </div>
+            </div>
+            
+            <!-- Right side panel -->
+            <div class="dashboard-side-panel right">
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Fuel: 98%</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Temp: Nominal</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Comms: Online</span>
+                </div>
+                <div class="side-indicator">
+                    <span class="side-indicator-text">Scan: Ready</span>
+                </div>
+            </div>
+            
+            <!-- Center control area -->
+            <div class="dashboard-center">
+                <!-- Status bar -->
+                <div class="status-bar">
+                    <div class="status-item">
+                        <div class="status-dot green"></div>
+                        <span>Mission Ready</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot blue"></div>
+                        <span>All Systems Go</span>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-dot green"></div>
+                        <span>Crew Standing By</span>
+                    </div>
+                </div>
+                
+                <!-- Game control buttons -->
+                <div class="game-controls">
+                    <div class="control-button" onclick="alert('Launching Debug Station Alpha...')">
+                        <div class="control-button-corner top-left"></div>
+                        <div class="control-button-corner bottom-right"></div>
+                        <span class="button-icon">🔧</span>
+                        <div class="button-label">Debug Station</div>
+                        <div class="button-sublabel">Alpha Protocol</div>
+                    </div>
+
+                    <div class="control-button" onclick="alert('Launching Error Detection Bay...')">
+                        <div class="control-button-corner top-left"></div>
+                        <div class="control-button-corner bottom-right"></div>
+                        <span class="button-icon">🔍</span>
+                        <div class="button-label">Error Detection</div>
+                        <div class="button-sublabel">Bay Scanner</div>
+                    </div>
+
+                    <div class="control-button" onclick="alert('Launching Integration Hub...')">
+                        <div class="control-button-corner top-left"></div>
+                        <div class="control-button-corner bottom-right"></div>
+                        <span class="button-icon">⚙️</span>
+                        <div class="button-label">Integration</div>
+                        <div class="button-sublabel">Hub Control</div>
+                    </div>
+
+                    <div class="control-button" onclick="alert('Launching Speed Run Challenge...')">
+                        <div class="control-button-corner top-left"></div>
+                        <div class="control-button-corner bottom-right"></div>
+                        <span class="button-icon">🚀</span>
+                        <div class="button-label">Speed Run</div>
+                        <div class="button-sublabel">Challenge Mode</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate three layers of stars for parallax effect
+        function createStars(layerId, count, minSize, maxSize) {
+            const layer = document.getElementById(layerId);
+            
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const size = Math.random() * (maxSize - minSize) + minSize;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                
+                star.style.opacity = Math.random() * 0.5 + 0.5;
+                
+                layer.appendChild(star);
+            }
+        }
+
+        // Create star layers: close (large/fast), medium, far (small/slow)
+        createStars('stars1', 60, 2, 4);
+        createStars('stars2', 100, 1, 2.5);
+        createStars('stars3', 150, 0.5, 1.5);
+    </script>
+</body>
+</html>
